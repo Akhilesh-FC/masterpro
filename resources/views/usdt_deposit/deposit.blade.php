@@ -43,7 +43,8 @@
 									@elseif($item->type==1)
                                     <td>{{ $item->usdt_amount }}</td>
 									@endif
-                                    <td><a href="{{ url(env('APP_URL') . $item->screenshot) }}">view</a></td>
+                                    <td><a href="{{ url(env('APP_URL') . $item->screenshot) }}">view</a></td> 
+									<!--<td><a href="https://root.masterpro.vip{{ $item->screenshot }}">view</a></td>-->
                                     <td>
                                         @if($item->status == 1)
                                         <div class="dropdown">

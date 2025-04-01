@@ -17,7 +17,7 @@ use App\Http\Controllers\TrxAdminController;
 use App\Http\Controllers\GiftController;
 use App\Http\Controllers\PlinkoController;
 use App\Http\Controllers\FeedbackController;
-use App\Http\Controllers\{SettingController,BusinessSettingController};
+use App\Http\Controllers\{SettingController,BusinessSettingController,BankDetailsController,PaymentLimitController};
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\WidthdrawlController;
 
@@ -33,7 +33,7 @@ use App\Http\Controllers\UsdtController;
 use App\Http\Controllers\UsdtDepositController;
 use App\Http\Controllers\UsdtWidthdrawController;
 use App\Http\Controllers\SalaryController;
-
+use App\Http\Controllers\RebateSystemController;
 
 //Aviator
 use App\Http\Controllers\AviatorAdminController;
@@ -88,7 +88,18 @@ Route::post('/login',[LoginController::class,'auth_login'])->name('auth.login');
 Route::get('/dashboard',[LoginController::class,'dashboard'])->name('dashboard');
 Route::get('/get-reseller-info',[LoginController::class,'get_reseller_info']);
 
- 
+Route::get('/bank-details', [BankDetailsController::class, 'index'])->name('bank.details');
+Route::post('/bank-details/updates', [BankDetailsController::class, 'updateStatus'])->name('bank.details.update');
+Route::post('/bank-details/delete', [BankDetailsController::class, 'delete'])->name('bank.details.delete');
+
+Route::get('/payment-limits', [PaymentLimitController::class, 'index'])->name('payment.limits');
+Route::post('/payment-limits/update', [PaymentLimitController::class, 'update'])->name('payment.limits.update');
+
+
+
+Route::get('/usdt-details', [BankDetailsController::class, 'usdt_index'])->name('usdt.details');
+Route::post('/usdt-details/update', [BankDetailsController::class, 'usdtupdateStatus'])->name('usdt.details.update');
+Route::post('/usdt-details/delete', [BankDetailsController::class, 'usdt_delete'])->name('usdt.details.delete');
         
  //// Trx Game Routes ////
      Route::get('/trx/{gameid}',[TrxAdminController::class, 'trx_create'])->name('trx');
@@ -242,6 +253,7 @@ Route::get('/get-reseller-info',[LoginController::class,'get_reseller_info']);
     Route::get('/widthdrawl-active-{id}', [WidthdrawlController::class,'success'])->name('widthdrawl.success');
     //Route::any('/widthdrawl-inactive-{id}',[WidthdrawlController::class, 'reject'])->name('widthdrawl.reject');
     Route::post('/widthdrawl/reject/{id}', [WidthdrawlController::class, 'reject'])->name('widthdrawl.reject');
+    Route::get('/widthdrawl-upi-{id}', [WidthdrawlController::class,'success_by_upi'])->name('widthdrawl.upi');
 
 
     Route::get('/indiaonlin_payout-{id}', [WidthdrawlController::class,'indiaonlin_payout'])->name('indiaonlin_payout.success');
@@ -282,7 +294,7 @@ Route::get('/get-reseller-info',[LoginController::class,'get_reseller_info']);
     Route::get('/usdt_widthdrawl-delete-{id}',[UsdtWidthdrawController::class, 'usdt_widthdrawl_delete'])->name('usdt_widthdrawl.delete');
     Route::post('/usdt_widthdrawl-update-{id}', [UsdtWidthdrawController::class, 'usdt_widthdrawl_update'])->name('usdt_widthdrawl.update');
     Route::get('/usdt_withdraw/{id}', [UsdtWidthdrawController::class,'usdt_success'])->name('usdt_widthdrawl.success');
-    Route::get('/usdt_widthdrawl-inactive-{id}',[UsdtWidthdrawController::class, 'usdt_reject'])->name('usdt_widthdrawl.reject');
+    Route::any('/usdt_widthdrawl-reject-{id}',[UsdtWidthdrawController::class, 'usdt_reject'])->name('usdt_widthdrawl.reject');
     Route::post('/usdt_widthdrawl-all-success',[UsdtWidthdrawController::class, 'usdt_all_success'])->name('usdt_widthdrawl.all_success');
 
 
@@ -332,4 +344,5 @@ Route::controller(BusinessSettingController::class)->group(function(){
     Route::post('/businessSetting/Update/{id}', 'businessSettingUpdate')->name('businessSettingUpdate');
 });
 
-
+Route::get('/rebate.details', [RebateSystemController::class, 'rebateDetails'])->name('rebate.details');
+Route::post('/rebate/update', [RebateSystemController::class, 'updateRebate'])->name('rebate.update');

@@ -58,28 +58,71 @@ class TestJilliController extends Controller{
 			}
 	   }
 	
-	function get_all_game_list(){
-		    $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
-			$token = 'FEGISo8cR74cf';
-			$headers = ['authorization' => 'Bearer ' .$token];
-			$payload = ['payload'=>''];
-		   	if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					  return response()->json([
-						  'status' => 200,
-						  'message' => 'Game list..',
-						   'data' =>$apiResponse->data,
-						  'fish' =>$apiResponse->fish,
-						  'slot' =>$apiResponse->slot,
-						  'tableandcard' =>$apiResponse->tableandcard,
-						  'crash' =>$apiResponse->crash
-					  ], 200); 
-				}
-				return response()->json(['status' => 400,'message' => 'Failed to get game list.', 'api_response' => $response->body()], 400);
-			} catch (\Exception $e) {
-				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
-				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
-			}
-	   }
+// 	function get_all_game_list(){
+// 		    $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
+// 			$token = 'FEGISo8cR74cf';
+// 			$headers = ['authorization' => 'Bearer ' .$token];
+// 			$payload = ['payload'=>''];
+// 		   	if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+// 					  return response()->json([
+// 						  'status' => 200,
+// 						  'message' => 'Game list..',
+// 						   'data' =>$apiResponse->data,
+// 						  'fish' =>$apiResponse->fish,
+// 						  'slot' =>$apiResponse->slot,
+// 						  'tableandcard' =>$apiResponse->tableandcard,
+// 						  'crash' =>$apiResponse->crash
+// 					  ], 200); 
+// 				}
+// 				return response()->json(['status' => 400,'message' => 'Failed to get game list.', 'api_response' => $response->body()], 400);
+// 			} catch (\Exception $e) {
+// 				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+// 				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
+// 			}
+// 	   }
+
+
+function get_all_game_list()
+{
+    try {
+        $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
+        $token = 'FEGISo8cR74cf';
+        
+        // Make the HTTP request
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->get($apiUrl);
+
+        // Decode the JSON response
+        $apiResponse = $response->json();
+
+        if ($response->successful() && isset($apiResponse['error']) && $apiResponse['error'] == false) {
+            return response()->json([
+                'status' => 200,
+                'message' => 'Game list retrieved successfully.',
+                'data' => $apiResponse['data'] ?? [],
+                'fish' => $apiResponse['fish'] ?? [],
+                'slot' => $apiResponse['slot'] ?? [],
+                'tableandcard' => $apiResponse['tableandcard'] ?? [],
+                'crash' => $apiResponse['crash'] ?? []
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 400,
+            'message' => 'Failed to get game list.',
+            'api_response' => $apiResponse
+        ], 400);
+    } catch (\Exception $e) {
+        Log::error('Game List API Error:', ['error' => $e->getMessage()]);
+        return response()->json([
+            'status' => 500,
+            'message' => 'Internal Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 	
 	function get_game_url_gameid(){
 			    $user_id = 1;

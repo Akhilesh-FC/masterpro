@@ -2,7 +2,7 @@
 
 }else{
 	
-	header("Location: https://root.jupitergames.app/");
+	header("Location: https://root.masterpro.vip/");
             die; 
 
 } 
@@ -27,7 +27,7 @@
                    </ul> --}}
                    <ul class="user_profile_dd">
                       <li>
-                         <a class="dropdown-toggle" data-toggle="dropdown"><img class="img-responsive rounded-circle" src="https://masterpro.codingjourney.in/uploads/masterpro_logo.png" alt="Master Pro" /><span class="name_user">Admin</span></a>
+                         <a class="dropdown-toggle" data-toggle="dropdown"><img class="img-responsive rounded-circle" src="https://root.masterpro.vip/uploads/masterpro_logo.png" alt="Master Pro" /><span class="name_user">Admin</span></a>
                          <div class="dropdown-menu">
                             <!--<a class="dropdown-item" href="#">My Profile</a>-->
                             {{-- <a class="dropdown-item" href="settings.html">Settings</a>

@@ -12,7 +12,7 @@
                      <div class="icon_setting"></div>
                      <div class="user_profle_side">
                         <div class="user_img">
-							<img class="img-responsive" src="https://masterpro.codingjourney.in/uploads/masterpro_logo.png" style="height:50px; width:100px; margin:10px; padding:left-10%" alt="#" />
+							<img class="img-responsive" src="https://root.masterpro.vip/uploads/masterpro_logo.png" style="height:50px; width:100px; margin:10px; padding:left-10%" alt="#" />
 						 </div>
                         <div class="user_info">
                            <h6>Admin</h6>
@@ -52,7 +52,7 @@
 					  <!--<li><a href="{{route('plinko')}}"><i class="fa fa-gamepad purple_color2"></i> <span>Plinko</span></a></li>-->
 					  
 					   @php
-                         $game_id = DB::select("SELECT * FROM `game_settings` LIMIT 5;");
+                         $game_id = DB::select("SELECT * FROM `game_settings` LIMIT 4;");
 	
                        @endphp
 					  
@@ -72,14 +72,17 @@
                     <!-- <li><a href="{{route('feedback')}}"><i class="fa fa-file blue1_color"></i> <span>FeedBack</span></a></li>-->
                      
                      <li><a href="{{route('salary.list')}}"><i class="fa fa-file blue1_color"></i> <span> Salary</span></a></li>
+					<li><a href="{{route('bank.details')}}"><i class="fa fa-list red_color"></i> <span>Bank Management System </span></a></li>					 <li><a href="{{route('usdt.details')}}"><i class="fa fa-list red_color"></i> <span>USDT Management System </span></a></li>
+					    <li><a href="{{route('rebate.details')}}"><i class="fa fa-list red_color"></i> <span>Rebate System </span></a></li>
+					  <li><a href="{{route('payment.limits')}}"><i class="fa fa-list red_color"></i> <span> Conversion rate </span></a></li>
                      
 			      <!-- <li><a href="{{route('monthly_salary.list')}}"><i class="fa fa-file blue1_color"></i> <span>Monthly Salary</span></a></li>--!>
                      
 					  
 
-		<!--<li><a href="{{route('usdtqr')}}"><i class="fa fa-table purple_color2"></i> -->
-  <!--          <span>USDT QR Code</span></a>-->
-  <!--      </li>-->
+		<li><a href="{{route('usdtqr')}}"><i class="fa fa-table purple_color2"></i> 
+            <span>USDT QR Code</span></a>
+        </li>
         
         <li>
             <a href="#app13" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle"><i class="fa fa-tasks  green_color"></i>            <span>Payin</span></a>

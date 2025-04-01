@@ -16,129 +16,153 @@ use DateInterval;
 use Illuminate\Support\Facades\DB;
 
 
+
+
 class VipController extends Controller
 {
 	
-public function vip_level(Request $request)
-{
-    date_default_timezone_set('Asia/Kolkata');
-    $currentDateTime = now();
-    $currentDate = $currentDateTime->format('Y-m-d');
+	  public function vip_level(Request $request)
+    {
+        date_default_timezone_set('Asia/Kolkata');
+        $datetime = date('Y-m-d H:i:s');
+        //  $date = date('Y-m-d');
+        //  date_default_timezone_set('Asia/Kolkata');
+        $date = now()->format('Y-m-d');
+           $validator = Validator::make($request->all(), [
+         'userid' => 'required|numeric'
+    ]);
 
-    $validator = Validator::make($request->all(), [
-        'userid' => 'required|numeric'
-    ])->stopOnFirstFailure();
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 400,
-            'message' => $validator->errors()->first()
-        ], 400);
+        $validator->stopOnFirstFailure();
+
+    if($validator->fails()){
+
+                                             $response = [
+                        'status' => 400,
+                       'message' => $validator->errors()->first()
+                      ]; 
+
+                return response()->json($response,400);
+
     }
+ $userid = $request->userid;  
+		  
+		  		 $my_exp = DB::select("SELECT `created_at` FROM `users` WHERE `id` = $userid");
 
-    $userid = $request->userid;
 
-    // Calculate experience in months and days
-    $createdDate = DB::table('users')->where('id', $userid)->value('created_at');
-    $createdAt = new DateTime($createdDate);
-    $interval = $createdAt->diff(new DateTime($currentDateTime));
-    $totalMonths = ($interval->y * 12) + $interval->m;
-    $totalDays = $interval->d;
+    $created_at = new DateTime($my_exp[0]->created_at);
 
-    // Calculate bet amounts
-    //$aviatorAmount = DB::table('aviator_bet')->where('uid', $userid)->sum('amount');
-    
-    $wdhAmount = DB::table('bets')->where('userid', $userid)->sum('amount');
-    $mineAmount = DB::table('mine_game_bets')->where('userid', $userid)->sum('amount');
+    // Current date
+    $current_date = new DateTime(now());
+
+    // Calculate the difference
+    $interval = $created_at->diff($current_date);
+
+    // Calculate total months and days
+    $total_months = $interval->y * 12 + $interval->m; // Convert years to months and add months
+    $total_days = $interval->d; // Days remain the same
+
+    //dd($total_months,$total_days);
    
-    //$betAmount = $aviatorAmount + $wdhAmount + $mineAmount;
-    $betAmount = $wdhAmount + $mineAmount;
+    
 
-    // Fetch VIP level details
-    $activityRewards = DB::table('vip_levels')
-        ->leftJoin('vip_levels_claim', function ($join) use ($userid) {
-            $join->on('vip_levels.id', '=', 'vip_levels_claim.vip_levels_id')
-                 ->where('vip_levels_claim.userid', '=', $userid);
-        })
-        ->select(
-            'vip_levels.*',
-            'vip_levels_claim.level_up_status',
-            'vip_levels_claim.monthly_rewards_status',
-            'vip_levels_claim.rebate_rate_status',
-            DB::raw("COALESCE(vip_levels_claim.status, '0') AS claim_status"),
-            DB::raw("COALESCE(vip_levels.created_at, 'Not Found') AS created_at")
-        )
-        ->orderBy('vip_levels.id')
-        ->limit(10)
-        ->get();
+		  
+		  
+		  
+       // $userid = $request->input('userid');
+      $bet_amount = DB::table('bets')
+    ->where('userid', $userid)
+    //->whereDate('created_at', '=', $date)
+    ->sum('amount');
+   // dd($bet_amount);
 
-    $data = [];
-    foreach ($activityRewards as $item) {
-        $betRange = $item->betting_range;
-        $percentage = $betRange ? number_format(($betAmount / $betRange) * 100, 2) : 0;
+     $activity_reward=DB::select("SELECT vip_levels.*, vip_levels_claim.level_up_status as level_up_status, vip_levels_claim.monthly_rewards_status AS monthly_rewards_status , vip_levels_claim.rebate_rate_status as rebate_rate_status, COALESCE(vip_levels_claim.`status`, '0') AS `claim_status`, COALESCE(vip_levels.`created_at`, 'Not Found') AS `created_at` FROM vip_levels LEFT JOIN vip_levels_claim ON vip_levels.`id` = vip_levels_claim.vip_levels_id AND vip_levels_claim.`userid` =$userid ORDER BY vip_levels.`id` ASC LIMIT 10;
+");
+      //dd($activity_reward);
+    //$range_amount=$activity_reward['range_amount'];
+    $data=[];
+foreach ($activity_reward as $item){
+    
+       $bet_range= $item->betting_range;
+       $level_rewards=$item->level_up_rewards;
+        $monthly_rewards=$item->monthly_rewards;
+        $rebate_rate=$item->rebate_rate;
+         $safe_income=$item->safe_income;
+        $rebate_rate_status =$item->rebate_rate_status;
+        $monthly_rewards_status =$item->monthly_rewards_status;
+       $level_up_status =$item->level_up_status;
 
-        // Check and insert into vip_levels_claim if not existing
-        $checkExist = DB::table('vip_levels_claim')
-                        ->where('userid', $userid)
-                        ->where('vip_levels_id', $item->id)
-                        ->first();
-        
-        if (!$checkExist && $betAmount >= $betRange) {
-            DB::table('vip_levels_claim')->insert([
-                'userid' => $userid,
-                'vip_levels_id' => $item->id,
-                'status' => 1,
-                'level_up_status' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-        }
+       $id=$item->id;
+       $name=$item->name;
+       $status=$item->claim_status;
+       $created_at=$item->created_at;
+       $updated_at=$item->updated_at;
+ $totalpercentage=($bet_amount / $bet_range) * 100;
+        $percantage=number_format($totalpercentage, 2);
+    //$amount=$activity_reward['amount'];
+    
+	$check_exist = DB::table('vip_levels_claim')->where('userid',$userid)->where('vip_levels_id',$id)->first();
+	
+	if(!$check_exist){
+		if($bet_amount >= $bet_range){
 
-        $data[] = [
-            'id' => $item->id,
-            'name' => $item->name,
-            'range_amount' => (int)$betRange,
-            'level_up_rewards' => $item->level_up_rewards,
-            'monthly_rewards' => $item->monthly_rewards,
-            'rebate_rate' => $item->rebate_rate,
-            'status' => (int)$item->claim_status,
-            'level_up_status' => $item->level_up_status ?? 0,
-            'monthly_rewards_status' => $item->monthly_rewards_status ?? 0,
-            'rebate_rate_status' => $item->rebate_rate_status ?? 0,
-            'bet_amount' => $betAmount,
-            //'percentage' => (double)$percentage,
-			'percentage' => number_format((double)$percentage, 2, '.', '0'),
-		    'created_at' => $item->created_at,
-            'updated_at' => $item->updated_at
-        ];
+           DB::select("INSERT INTO `vip_levels_claim`( `userid`, `vip_levels_id`, `status`,`level_up_status`) VALUES ('$userid','$id','1','1')");
     }
+	}
+   
+    
 
-    if ($activityRewards->isNotEmpty()) {
-        return response()->json([
-            'message' => 'VIP Level List',
-            'status' => 200,
-            'days_count' => $totalDays ?? 0,
-            'my_experience' => $totalMonths ?? 0,
-            'data' => $data
-        ]);
-    } else {
-        return response()->json([
-            'message' => 'Not found..!',
-            'status' => 400,
-            'data' => []
-        ], 400);
-    }
+    
+     $data[] = [
+         'id'=>$id,
+         'name'=>$name,
+         'range_amount'=>$bet_range,
+         'level_up_rewards'=>$level_rewards,
+                 'monthly_rewards'=>$monthly_rewards,
+                 'rebate_rate'=>$rebate_rate,
+                  'safe_income'=>$safe_income,
+         'status'=>$status,
+        'level_up_status' => $level_up_status ?? 0,
+'monthly_rewards_status' => $monthly_rewards_status ?? 0,
+'rebate_rate_status' => $rebate_rate_status ?? 0,
+         'bet_amount'=>$bet_amount,
+         'percantage'=>$percantage,
+         'created_at'=>$created_at,    
+         'updated_at'=>$updated_at       
+         ];
+ //dd($data);
 }
 
+    
+         $days_count = $total_days ?? 0; 
+        //dd($days_count);
+         // $days_count =  $activity_reward['days_count'];
+         $my_exprience =  $total_months ?? 0;
+        if (!empty($activity_reward)) {
+            $response = [
+                'message' => 'Vip Lavel List',
+                'status' => 200,
+                //'bet_amount'=>$bet_amount,
+               'days_count'=>$days_count,
+               'my_exprience'=>$my_exprience,
+                'data' => $data
+
+            ];
+            return response()->json($response);
+        } else {
+            return response()->json(['message' => 'Not found..!','status' => 400,
+                'data' => []], 400);
+        }
+    }
 
 
  //// vip Level History ////
-   public function vip_level_history(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'userid' => 'required',
-        // 'limit' => 'required'
-    ]);
+    public function vip_level_history(Request $request)
+        {
+        $validator = Validator::make($request->all(), [
+                    'userid'=>'required',
+                    // 'limit' => 'required'
+                        ]);
 
     $validator->stopOnFirstFailure();
 
@@ -146,63 +170,63 @@ public function vip_level(Request $request)
         return response()->json(['status' => 400, 'message' => $validator->errors()->first()]);
     }
 
-    $userid = $request->userid;
+        $userid = $request->userid;
     $limit = $request->limit ?? 10000;
     $offset = $request->offset ?? 0;
-    $from_date = $request->created_at ?? null;
-    $to_date = $request->created_at ?? null;
+        $from_date = $request->created_at;
+        $to_date = $request->created_at;
 
-    $whereClauses = [];
-    $params = [];
 
-    // Add userid condition
-    if (!empty($userid)) {
-        $whereClauses[] = 'vip_levels_claim.userid = ?';
-        $params[] = $userid;
-    }
+if (!empty($userid)) {
+    $where['vip_levels_claim.userid'] = "$userid";
+}
 
-    // Add date conditions if both dates are provided
-    if (!empty($from_date) && !empty($to_date)) {
-        $whereClauses[] = 'vip_levels_claim.created_at BETWEEN ? AND ?';
-        $params[] = $from_date;
-        $params[] = $to_date;
-    }
+if (!empty($from_date)) {
+    
+       $where['vip_levels_claim.created_at']="$from_date%";
+  $where['vip_levels_claim.created_at']="$to_date%";
+}
 
-    // Prepare the base query
-    $query = "SELECT `exp`, `created_at` FROM `vip_levels_claim`";
+$query = "SELECT `exp`,`created_at` FROM `vip_levels_claim`" ;
 
-    // Append where clauses if any
-    if (!empty($whereClauses)) {
-        $query .= " WHERE " . implode(" AND ", $whereClauses);
-    }
+if (!empty($where)) {
+    $query .= " WHERE " . implode(" AND ", array_map(function ($key, $value) {
+        return "$key = '$value'";
+    }, array_keys($where), $where));
+}
 
-    // Append order and limit
-    $query .= " ORDER BY `id` DESC LIMIT ?, ?";
-    $params[] = $offset; // for the OFFSET
-    $params[] = $limit;  // for the LIMIT
-
-    // Execute the query with parameters
-    $results = DB::select($query, $params);
-
-    // Return the response based on results
-    if (!empty($results)) {
-        return response()->json([
+ $query .= " ORDER BY  vip_levels_claim.id DESC  LIMIT $offset , $limit";
+//////
+$results = DB::select($query);
+if(!empty($results)){
+    ///
+                //
+                 return response()->json([
             'status' => 200,
             'message' => 'Data found',
             'data' => $results
+
         ]);
-    } else {
-        return response()->json([
-            'status' => 400,
-            'message' => 'No Data found',
-            'data' => []
-        ]);
-    }
+return response()->json($response,200);
+}else{
+    
+     //return response()->json(['msg' => 'No Data found'], 400);
+    $response = [
+    'status' => 400,
+    'message' => 'No Data found',
+    'data' => $results
+];
+
+
+return response()->json($response, $response['status']);
+
+    
 }
 
-public function receive_money(Request $request)
+        }
+	
+	public function receive_money(Request $request)
 {
-    // Validate the incoming request
     $validator = Validator::make($request->all(), [
         'userid' => 'required',
         'level_id' => 'required'
@@ -217,14 +241,10 @@ public function receive_money(Request $request)
         ], 400);
     }
 
-    // Extracting inputs
     $userid = $request->input('userid');
     $level_id = $request->input('level_id');
-    $level_up_reward = $request->input('level_up_rewards');
-    $monthly_rewards = $request->input('monthly_rewards');
-    $datetime = now();
 
-    // Check if the user has already claimed the rewards
+    // Check if already claimed
     $check_exist = DB::table('vip_levels_claim')
         ->where('userid', $userid)
         ->where('vip_levels_id', $level_id)
@@ -232,50 +252,133 @@ public function receive_money(Request $request)
         ->first();
 
     if ($check_exist) {
-        return response()->json(['message' => 'Already claimed!', 'status' => 400]);
+        return response()->json([
+            'message' => 'Already claimed!',
+            'status' => 400
+        ]);
     }
 
-    // Determine the reward type and perform the necessary operations
+    $datetime = now();
+    $level_up_reward = $request->input('level_up_rewards', 0);
+    $monthly_rewards = $request->input('monthly_rewards', 0);
+
     if (!empty($level_up_reward) && $level_up_reward > 0) {
-        // Level up reward handling
-        $this->handleReward($userid, $level_up_reward, 10, $datetime);
-        
-        DB::table('vip_levels_claim')
-            ->where('userid', $userid)
-            ->where('vip_levels_id', $level_id)
-            ->update(['level_up_status' => 0]);
+        // Insert into wallet history
+        DB::table('wallet_histories')->insert([
+            'user_id' => $userid,
+            'amount' => $level_up_reward,
+            'type_id' => 27,
+            'created_at' => $datetime,
+            'updated_at' => $datetime
+        ]);
+
+        // Update user wallet balance & recharge balance
+        DB::update("UPDATE `users` SET `wallet` = `wallet` + ?, `recharge` = `recharge` + ? WHERE `id` = ?", 
+            [$level_up_reward, $level_up_reward, $userid]);
+
+        // Update level up status
+        DB::update("UPDATE `vip_levels_claim` SET `level_up_status` = ? WHERE `userid` = ? AND `vip_levels_id` = ?", 
+            [2, $userid, $level_id]);
     } else {
-        // Monthly reward handling
-        $this->handleReward($userid, $monthly_rewards, 11, $datetime);
+        // Insert monthly reward into wallet history
+        DB::table('wallet_histories')->insert([
+            'user_id' => $userid,
+            'amount' => $monthly_rewards,
+            'type_id' => 28,
+            'created_at' => $datetime,
+            'updated_at' => $datetime
+        ]);
+
+        // Update user wallet balance & recharge balance
+        DB::update("UPDATE `users` SET `wallet` = `wallet` + ?, `recharge` = `recharge` + ? WHERE `id` = ?", 
+            [$monthly_rewards, $monthly_rewards, $userid]);
         
-        DB::table('vip_levels_claim')
-            ->where('userid', $userid)
-            ->where('vip_levels_id', $level_id)
-            ->update(['monthly_rewards_status' => 0]);
+        // Update monthly rewards status
+        DB::update("UPDATE `vip_levels_claim` SET `monthly_rewards_status` = ? WHERE `userid` = ? AND `vip_levels_id` = ?", 
+            [2, $userid, $level_id]);
     }
 
-    return response()->json(['message' => 'Added Successfully', 'status' => 200], 200);
+    return response()->json([
+        'message' => "Added Successfully",
+        'status' => 200
+    ], 200);
 }
 
-// Helper function to handle wallet updates
-private function handleReward($userid, $amount, $subtypeid, $datetime)
+
+public function receive_moneyold(Request $request)
 {
-    // Insert into wallet history
-    DB::table('wallet_histories')->insert([
-        'user_id' => $userid,
-        'amount' => $amount,
-        'type_id' => $subtypeid,
-        'created_at' => $datetime,
-        'updated_at' => $datetime
+    $validator = Validator::make($request->all(), [
+        'userid' => 'required',
+        'level_id' => 'required'
     ]);
 
-    // Update user wallet and recharge amounts
-    DB::table('users')
-        ->where('id', $userid)
-        ->update([
-            'wallet' => DB::raw('wallet + ' . $amount),
-            'recharge' => DB::raw('recharge + ' . $amount)
+    $validator->stopOnFirstFailure();
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 400,
+            'message' => $validator->errors()->first()
+        ], 400);
+    }
+
+    $userid = $request->input('userid');
+    $level_id = $request->input('level_id');
+
+    // Check if already claimed
+    $check_exist = DB::table('vip_levels_claim')
+        ->where('userid', $userid)
+        ->where('vip_levels_id', $level_id)
+        ->where('level_up_status', 0)
+        ->first();
+
+    if ($check_exist) {
+        return response()->json([
+            'message' => 'Already claimed!',
+            'status' => 400
         ]);
+    }
+
+    $datetime = now();
+    $level_up_reward = $request->input('level_up_rewards', 0);
+    $monthly_rewards = $request->input('monthly_rewards', 0);
+
+    if (!empty($level_up_reward) && $level_up_reward > 0) {
+        // Insert into wallet history
+        DB::table('wallet_histories')->insert([
+            'user_id' => $userid,
+            'amount' => $level_up_reward,
+            'type_id' => 27,
+            'created_at' => $datetime,
+            'updated_at' => $datetime
+        ]);
+
+        // Update user wallet balance
+     // $add=  DB::update("UPDATE `users` SET `wallet` = `wallet` + ? WHERE `id` = ?", [$level_up_reward, $userid]);
+		$add = DB::update("UPDATE `users` SET `wallet` = `wallet` + ?, `recharge` = `recharge` + ? WHERE `id` = ?", [$level_up_reward, $recharge_amount, $userid]);
+
+        // Update level up status
+        DB::update("UPDATE `vip_levels_claim` SET `level_up_status` = ? WHERE `userid` = ? AND `vip_levels_id` = ?", [2, $userid, $level_id]);
+    } else {
+        // Insert monthly reward into wallet history
+        DB::table('wallet_histories')->insert([
+            'user_id' => $userid,
+            'amount' => $monthly_rewards,
+            'type_id' => 28,
+            'created_at' => $datetime,
+            'updated_at' => $datetime
+        ]);
+
+        // Update user wallet balance
+        $add1=DB::update("UPDATE `users` SET `wallet` = `wallet` + ?, `recharge` = `recharge` + ? WHERE `id` = ?", [$monthly_rewards, $userid]);
+        
+        // Update monthly rewards status
+        DB::update("UPDATE `vip_levels_claim` SET `monthly_rewards_status` = ? WHERE `userid` = ? AND `vip_levels_id` = ?", [2, $userid, $level_id]);
+    }
+
+    return response()->json([
+        'message' => "Added Successfully",
+        'status' => 200
+    ], 200);
 }
 
 

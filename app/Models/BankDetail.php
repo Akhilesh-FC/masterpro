@@ -14,6 +14,7 @@ class BankDetail extends Model
         'account_num',
         'bank_name',
         'ifsc_code',
+        'upi_id',
         'status',
         
     ];

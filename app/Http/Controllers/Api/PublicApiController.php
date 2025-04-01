@@ -573,7 +573,8 @@ if($bonusClaim->isEmpty()){
 $user = DB::table('users')->where('id', $userid)->first();
 if (!empty($user)) {
    $usser= DB::table('users')->where('id', $userid)->update([
-        'wallet' => $user->wallet + $amount, // Add amount to wallet
+        'wallet' => $user->wallet + $amount,// Add amount to wallet
+	   'recharge' => $user->recharge + $amount
     ]);
 }else{
  return response()->json([
@@ -833,9 +834,142 @@ private function generateSecureRandomString($length = 8)
     return $randomString;
 }
 
-  
+   public function registers(Request $request){
+
+    //dd($request);
+    // Validate the incoming request
+    $validator = Validator::make($request->all(), [
+   // 'email' => 'required|email|unique:users,email',
+	'country_code' => 'required',
+    'mobile' => 'required|numeric|digits:10|unique:users,mobile',
+    'password' => 'required|min:8',
+    'password_confirmation' => 'required|min:8|same:password', // Add the 'same' rule
+    'referral_code' => 'nullable|string|exists:users,referral_code',
+]);
+// Return validation error if it fails
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 400,
+            'message' => $validator->errors()->first()
+        ],200);
+    }
+//dd($request);
+    // Generate random name and referral code
+    $randomName = 'User_' . strtoupper(Str::random(5));
+    $randomReferralCode = 'ZUP' . strtoupper(Str::random(4));
+	   $uniqueId = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'), 0, 16);
+
+		  // $email = $request->email;
+		  $mobile = $request->mobile;
+    
+    // Get base URL
+    $baseUrl = URL::to('/');
+    $uid=$this->generateSecureRandomString(6);
+    // Prepare data for insertion using Eloquent model
+    $data = [
+        'name' => $randomName,
+        'u_id' => $uid,
+        'mobile' => $request->mobile, // Ensure this is not null
+        'password' =>$request->password, 
+        'image' => $baseUrl . "/image/download.png",
+        'status' => 1,
+        'referral_code' => $uid,
+        'wallet' => 0,
+		'country_code' => $request->country_code,
+		'accountNo' =>  $request->mobile,
+		//'email'=>$email
+		 'spribe_id' => $uniqueId
+    ];
+
+    // Check for referral code and set referrer ID if applicable
+    if ($request->has('referral_code')) {
+        $referrer = User::where('referral_code', $request->referral_code)->first();
+        if ($referrer) {
+            $data['referrer_id'] = $referrer->id;
+        }
+    }
+	   
+	   // External API setup Spribe
+    $manager_key = 'FEGISwJ7ihr41';
+	$authorizationtoken = 17401563258744;
+    $apiUrl = 'https://spribe.gamebridge.co.in/seller/v1/new-spribe-registration';
+    $headers = [
+        'Authorization' => 'Bearer ' . $manager_key,
+		'authorizationtoken' => 'Bearer '.$authorizationtoken,
+        'Content-Type'  => 'application/json'
+    ];
+    $requestData = json_encode(['userId' => $uniqueId]);
+	  // dd($requestData);
+    $payload = ['payload' => base64_encode($requestData)];
+	   
+ // External API setup Spribe
+   
+    // External API setup Jilli
+    $manager_keys = 'FEGISwJ7ihr41';
+	$authorizationtoken = 17401563258744;
+    $apiUrls = 'https://api.gamebridge.co.in/seller/v1/get-newjilli-game-registration';
+    $headers1 = [
+        'Authorization' => 'Bearer ' . $manager_keys,
+		'authorizationtoken' => 'Bearer '.$authorizationtoken,
+        'Content-Type'  => 'application/json'
+    ];
+    $requestData1 = json_encode(['mobile' => $mobile]);
+    $payload1 = ['payload' => base64_encode($requestData1)];
+
+    try {
+       
+        // Make API request Spribe
+        $response = Http::withHeaders($headers)->post($apiUrl, $payload);
+        $apiResponse = json_decode($response->body());
+        //dd($apiResponse);
+        // Log the full response
+        Log::info('Spribe API Response:', ['response' => $response->body()]);
+
+        // Make API request Jilli
+        $response1 = Http::withHeaders($headers1)->post($apiUrls, $payload1);
+        $apiResponse1 = json_decode($response1->body());
+		//dd($apiResponse1);
+        Log::info('Jilli API Response:', ['response' => $response1->body()]);
+
+        if ($response1->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+            if (isset($apiResponse1->accountNo)) {
+                $data['accountNo'] = $apiResponse1->accountNo;
+            }
+
+            $user = User::create($data);
+
+            if ($user) {
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Registration successful',
+                    'data' => [
+                        'userId' => $user->id,
+                        'token' => $user->createToken('UserApp')->plainTextToken
+                    ],
+                    //'api_response' => $apiResponse
+                ], 200);
+            }
+        }
+
+        return response()->json([
+            'status' => 400,
+            'message' => 'Failed to register.',
+            'api_response' => $response1->body()
+			//dd($response1);
+        ], 400);
+
+    } catch (\Exception $e) {
+        Log::error('API Error:', ['error' => $e->getMessage()]);
+        return response()->json([
+            'status' => 400,
+            'message' => 'Internal Server Error',
+            'error' => $e->getMessage()
+        ], 400);
+    }
+}
+	 
 	
-      public function registers(Request $request){
+      public function registers_oold(Request $request){
 
     //dd($request);
     // Validate the incoming request
@@ -876,6 +1010,7 @@ private function generateSecureRandomString($length = 8)
         'referral_code' => $uid,
         'wallet' => 28,
 		'country_code' => $request->country_code,
+		'accountNo' =>  $request->mobile,
 		//'email'=>$email
     ];
 
@@ -890,7 +1025,7 @@ private function generateSecureRandomString($length = 8)
 	 //$manager_key = 'FEGISo8cR74cf';
      //$apiUrl = 'https://api.gamebridge.co.in/seller/v1/end-user-registration';
 	 //$headers = ['authorization' => 'Bearer ' . $manager_key];  
-		  //	$requestData  = ['email'=>$email,'mobile'=>$mobile];
+		 // 	$requestData  = ['mobile'=>$mobile];
 			//$requestData  = json_encode($requestData);
 			//$requestData  = base64_encode($requestData);
 		    //$payload = ['payload'=>$requestData];
@@ -902,8 +1037,8 @@ private function generateSecureRandomString($length = 8)
 
 				// Check if API call was successful
 				//if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					 // $account_token = $apiResponse->account_token;
-					 // $data['account_token'] = $account_token;
+				//	  $account_token = $apiResponse->account_token;
+				//	  $data['account_token'] = $account_token;
 					  $user = User::create($data);
 					if($user){
 					 $success['userId'] = $user->id;
@@ -912,10 +1047,10 @@ private function generateSecureRandomString($length = 8)
 						 'status' => 200,
 						 'message' => 'Registation successfully',
 						 'data' =>$success,
-						 //'api_response'=>$apiResponse
+						// 'api_response'=>$apiResponse
 					 ], 200);
 				}
-
+				//}
 				// Handle API errors
 				return response()->json([
 					'status' => 400,
@@ -963,13 +1098,11 @@ public function check_existsnumber(Request $request)
         'message' => "This mobile number is not registered. Please register ..!"
     ]);
 }
-
-
-   public function login(Request $request)
+	public function login(Request $request)
 {
     // Validate the input
     $validator = Validator::make($request->all(), [
-		'country_code' => 'required',
+        'country_code' => 'required',
         'mobile' => 'required|string|size:10',
         'password' => 'required'
     ]);
@@ -978,54 +1111,104 @@ public function check_existsnumber(Request $request)
         return response()->json([
             'status' => 400,
             'message' => $validator->errors()->first()
-        ],200);
+        ], 200);
     }
+     $token=$request->login_token;
 
-    // Check if the mobile number exists
-   $user = User::where('mobile', $request->mobile)
+    // Check if the user exists
+    $user = User::where('mobile', $request->mobile)
                 ->where('country_code', $request->country_code)
                 ->first();
 
     if (!$user) {
-        // Specific error for country code
-        if (!User::where('country_code', $request->country_code)->exists()) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Invalid country code'
-            ], 200);
-        }
-
-        // Specific error for mobile number
-        if (!User::where('mobile', $request->mobile)
-                 ->where('country_code', $request->country_code)
-                 ->exists()) {
-            return response()->json([
-                'status' => 400,
-                'message' => 'Invalid mobile number'
-            ], 200);
-        }
+        return response()->json([
+            'status' => 400,
+            'message' => 'Invalid mobile number or country code'
+        ], 200);
     }
 
-    // If both mobile and password are correct
-    // $response = [
-    //     'status' => 200,
-    //     'message' => 'Login successful',
-    //     'data' => $user
-    // ];
-            $success['userId'] = $user->id;
-	        $success['token'] = $user->createToken('UserApp')->plainTextToken;
-		    return response()->json(['status' => 200,'message' => 'Login successfully','data' =>$success], 200);
+    // Plain text password check (Not secure)
+    if ($request->password !== $user->password) {
+        return response()->json([
+            'status' => 400,
+            'message' => 'Incorrect password'
+        ], 200);
+    }
+    if (!$token) {
+        return response()->json([
+            'status' => 400,
+            'message' => 'login token is required'
+        ],200);
+    }
 
-    return response()->json($response, 200);
+	 DB::update("UPDATE `users` SET `account_token` = ? WHERE `id` = ?", [$token, $user->id]);
+
+    // Generate token
+    $success['userId'] = $user->id;
+    $success['token'] = $user->createToken('UserApp')->plainTextToken;
+
+    return response()->json([
+        'status' => 200,
+        'message' => 'Login successfully',
+        'data' => $success
+    ], 200);
 }
 
-public function Profile($id)
+
+	public function Profile($id)
 {
-    // Create an instance of the jilli class
-    //$jilliInstance = new jilli();
+    $ldate = new DateTime('now', new DateTimeZone('Asia/Kolkata'));
+    // echo $ldate->format('Y-m-d H:i:s');
+
+    try {
+        $user = User::find($id);
+
+        if ($user) {
+            // Check if the user is blocked by admin
+            if ($user->status == 0) {
+                return response()->json([
+                    'success' => 423,
+                    'message' => 'User blocked by admin..!'
+                ], 423); // HTTP 423: Locked
+            }
+
+            return response()->json([
+                'success' => 200,
+                'message' => 'User found..!',
+
+                'data' => $user,
+                'aviator_link' => "https://aviatorudaan.com/",
+                'aviator_event_name' => "jupiter",
+                'apk_link' => env('APP_URL') . "masterpro.apk",
+                'usdt_payin_amount' => 92,
+                'usdt_payout_amount' => 94,
+                'telegram' => "https://t.me/Help_jupiter",
+                'referral_code_url' => env('APP_URL') . "registerwithref/" . $user->referral_code,
+                'last_login_time' => $ldate->format('Y-m-d H:i:s'),
+
+                // Static India Pay Data
+                'india_pay' => [
+                    'min_amount' => 110,
+                    'max_amount' => 50000
+                ],
+
+                // Static USDT Data
+                'usdt' => [
+                    'min_amount' => 10,
+                    'max_amount' => 5000
+                ],
+            ]);
+        }
+        return response()->json(['success' => 400, 'message' => 'User not found..!'], 200);
+    } catch (Exception $e) {
+        return response()->json(['error' => 'API request failed: ' . $e->getMessage()], 500);
+    }
+}
+
+
+public function Profile_old($id)
+{
     
-    // Call the method on the instance
-    //$wallet_update = $jilliInstance->update_user_wallet($id);
 
     $ldate = new DateTime('now', new DateTimeZone('Asia/Kolkata'));
     // echo $ldate->format('Y-m-d H:i:s');
@@ -1040,7 +1223,7 @@ public function Profile($id)
                 'data' => $user,
                 'aviator_link' => "https://aviatorudaan.com/",
                 'aviator_event_name' => "jupiter",
-                'apk_link' => env('APP_URL') . "jupiter.apk",
+                'apk_link' => env('APP_URL') . "masterpro.apk",
                 'usdt_payin_amount' => 94,
                 'usdt_payout_amount' => 92,
                 'telegram' => "https://t.me/Help_jupiter",
@@ -1449,6 +1632,67 @@ public function resetPassword(Request $request)
         'message' => 'Password updated successfully'
     ], 200);
 }
+// public function addAccount(Request $request)
+// {
+//     $validator = Validator::make($request->all(), [
+//         'userid' => 'required',
+//         'name' => 'required',
+//         'account_number' => 'required',
+//         'bank_name' => 'required',
+//         //'ifsc_code' => 'required',
+//     ]);
+
+//     if ($validator->fails()) {
+//         return response()->json([
+//             'status' => "400",
+//             'message' => $validator->errors()->first(),
+//         ], 200);
+//     }
+
+//     $userid = $request->input('userid');
+//     $name = $request->input('name');
+//     $account_number = $request->input('account_number');
+//     $bank_name = $request->input('bank_name');
+//     //$ifsc_code = $request->input('ifsc_code');
+
+//     $datetime = Carbon::now();
+
+//     // Check if the account with the same account number already exists
+//     $existingAccount = BankDetail::where('account_num', $account_number)->first();
+
+//     if ($existingAccount) {
+//         return response()->json([
+//             'status' => "400",
+//             'message' => 'This account number is already registered.',
+//         ], 200);
+//     }
+
+//     // Create a new account
+//     $account = BankDetail::create([
+//         'userid' => $userid,
+//         'name' => $name,
+//         'account_num' => $account_number,
+//         'bank_name' => $bank_name,
+//         //'ifsc_code' => $ifsc_code,
+//         'status' => 1,
+//         'created_at' => $datetime,
+//         'updated_at' => $datetime,
+//     ]);
+
+//     if ($account) {
+//         return response()->json([
+//             'id' => $account->id,
+//             'status' => "200",
+//             'message' => 'Account Added Successfully.',
+//         ]);
+//     } else {
+//         return response()->json([
+//             'status' => "400",
+//             'message' => 'Account Not Added',
+//         ], 200);
+//     }
+// }
+
 public function addAccount(Request $request)
 {
     $validator = Validator::make($request->all(), [
@@ -1456,7 +1700,8 @@ public function addAccount(Request $request)
         'name' => 'required',
         'account_number' => 'required',
         'bank_name' => 'required',
-        'ifsc_code' => 'required',
+        //'ifsc_code' => 'required',
+        'upi_id' => 'required',
     ]);
 
     if ($validator->fails()) {
@@ -1470,7 +1715,8 @@ public function addAccount(Request $request)
     $name = $request->input('name');
     $account_number = $request->input('account_number');
     $bank_name = $request->input('bank_name');
-    $ifsc_code = $request->input('ifsc_code');
+    //$ifsc_code = $request->input('ifsc_code');
+    $upi_id = $request->input('upi_id'); // Fixed the comma issue
 
     $datetime = Carbon::now();
 
@@ -1490,7 +1736,8 @@ public function addAccount(Request $request)
         'name' => $name,
         'account_num' => $account_number,
         'bank_name' => $bank_name,
-        'ifsc_code' => $ifsc_code,
+        //'ifsc_code' => $ifsc_code,
+        'upi_id' => $upi_id, // Added missing comma
         'status' => 1,
         'created_at' => $datetime,
         'updated_at' => $datetime,
@@ -1509,6 +1756,7 @@ public function addAccount(Request $request)
         ], 200);
     }
 }
+
 
 
 public function addAccount_old(Request $request)
@@ -1925,10 +2173,10 @@ public function kuber_payin(Request $request)
 	//dd($referral_user_id);
 
     // First recharge percentage (10% for the user)
-    $userPercentage = ($amount * 10) / 100;
+    $userPercentage = ($amount * 2) / 100;
 
     // Second recharge percentage (5% for the referral user)
-    $secondPercentage = ($amount * 5) / 100;
+    $secondPercentage = ($amount * 2) / 100;
 	$final_amt=$amount + $userPercentage;
 	//dd($final_amt);
 
@@ -2028,6 +2276,121 @@ public function kuber_payin(Request $request)
     return redirect()->route('payin.successfully');
 }
 	
+public function payin_oldd(Request $request)
+{
+    // Validate request data
+    $validator = Validator::make($request->all(), [
+        'userid' => 'required|exists:users,id',
+        'amount' => 'required|numeric|min:110',
+    ]);
+
+    $validator->stopOnFirstFailure();
+
+    // Handle validation failure
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => "400",
+            'message' => $validator->errors()->first()
+        ], 200);
+    }
+
+    // Assign request data to variables
+    $cash = $request->amount;
+    $userid = $request->userid;
+
+    // Generate order id
+    $dateTime = new \DateTime('now', new \DateTimeZone('Asia/Kolkata'));
+    $formattedDateTime = $dateTime->format('YmdHis');
+    $rand = rand(11111, 99999);
+    $orderid = $formattedDateTime . $rand;
+    $datetime = now();
+
+    // Check if the user exists
+    $user = User::find($userid);
+
+    if (!$user) {
+        return response()->json([
+            'status' => "400",
+            'message' => 'Internal error! User not found.'
+        ], 400);
+    }
+
+    // Select merchant and API URL based on deposit amount
+    if ($cash <= 10000) {
+        $merchantid = "INDIANPAY00INDIANPAY00117"; // Payin merchant ID
+        $apiUrl = 'https://indianpay.co.in/admin/paynow';
+        $remark = "Payin";
+        $payinType = 0;
+    } else {
+        $merchantid = "PAYIN1001"; // Kuber Payin merchant ID
+        $apiUrl = 'https://dashboard.kuberpay.co.in/api/v1/payin';
+        $remark = "Kuber payIn";
+        $payinType = 1;
+    }
+
+    // Insert payin record
+    $payin = new Payin();
+    $payin->user_id = $user->id;
+    $payin->cash = $cash;
+    $payin->type = $payinType;
+    $payin->order_id = $orderid;
+    $payin->status = 1;
+    $payin->created_at = $dateTime;
+    $payin->updated_at = $dateTime;
+		
+		$payin->redirect_url = URL::to("/api/checkPayment?order_id=$orderid");
+
+    if (!$payin->save()) {
+        return response()->json(['status' => "400", 'message' => 'Failed to store record in payin history!'], 200);
+    }
+		
+		 $walletAmount = $cash * 0.10;
+
+    // Update wallet balance (assuming the `wallet_balance` column exists in `users` table)
+    $user->wallet += $walletAmount;
+
+		
+		
+    // Prepare data for the external API call
+    $postParameter = [
+        "merchantid" => $merchantid,
+        "orderid" => $orderid,
+        "amount" => $cash,
+        "name" => $user->name,
+        "email" => "test@gmail.com", // Update with the real email if needed
+        "mobile" => $user->mobile,
+        "remark" => $remark,
+        "type" => "2",
+        "redirect_url" => URL::to("/api/checkPayment?order_id=$orderid")
+    ];
+
+    // External API call using cURL
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $apiUrl,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => json_encode($postParameter),
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Cookie: ci_session=oo35jvjuvh3ukuk9t7biecukphiiu8vl'
+        ],
+    ]);
+
+    $response = curl_exec($curl);
+    curl_close($curl);
+
+    return response()->json([
+        'status' => "200",
+        'message' => 'Request processed successfully.',
+        'response' => json_decode($response, true)
+    ], 200);
+}
 
 
 
@@ -2070,7 +2433,7 @@ public function payin(Request $request)
         if ($cash > 10000) {
             return response()->json([
                 'status' => "400",
-                'message' => 'Please use KuberPay for amounts greater than 10,000.'
+                'message' => 'Please use USDT Payin for amounts greater than 10,000.'
             ], 200);
         }
 
@@ -2097,7 +2460,7 @@ public function payin(Request $request)
 
             // Prepare data for the external API call
             $postParameter = [
-                "merchantid" => "INDIANPAY00INDIANPAY0096",
+                "merchantid" => "INDIANPAY00INDIANPAY00117",
                 "orderid" => $orderid,
                 "amount" => $cash,
                 "name" => $user->name,
@@ -2210,22 +2573,22 @@ public function checkPayment(Request $request)
 	//dd($referral_user_id);
 
     // First recharge percentage (10% for the user)
-    $userPercentage = ($amount * 10) / 100;
+    $userPercentage = ($amount * 2) / 100;
 
     // Second recharge percentage (5% for the referral user)
-    $secondPercentage = ($amount * 5) / 100;
+    $secondPercentage = ($amount * 2) / 100;
 	$final_amt=$amount + $userPercentage;
 	//dd($final_amt);
 
     // Check if it's the user's first recharge
-    if ($user->first_recharge == '1') {
+    if ($user->first_recharge == '0') {
         // Update user wallet and recharge amounts
         DB::table('users')
             ->where('id', $userid)
             ->update([
                 'wallet' => DB::raw("wallet + $amount + $userPercentage"),
                 'recharge' => DB::raw("recharge + $amount + $userPercentage"),
-                'first_recharge' => 0, // Mark first recharge as done
+                'first_recharge' => 1, // Mark first recharge as done
             ]);
 		
 		
@@ -2264,7 +2627,7 @@ public function checkPayment(Request $request)
             ->update([
                 'wallet' => DB::raw("wallet + $amount + $userPercentage"),
                 'recharge' => DB::raw("recharge + $amount + $userPercentage"),
-                'first_recharge' => 0, // Mark first recharge as done
+                'first_recharge' => 1, // Mark first recharge as done
             ]);
 
         // If referral user exists, update their wallet and recharge
@@ -2519,6 +2882,246 @@ public function wallet_transfer(Request $request)
     $accountid = $request->input('account_id');
     $amount = $request->input('amount');
     $type = $request->input('type');
+		
+		 // Fetch user details for illegal betting condtion 
+    // Fetch user details for illegal betting condition 
+$userData = DB::table('users')->where('id', $userid)->first();
+
+if (!$userData) {
+    return response()->json([
+        'status' => 400,
+        'message' => 'User not found!'
+    ], 400);
+}
+
+// Check if the user has an illegal betting count greater than 0
+//if ($userData->illegal_count > 0) {
+ //   return response()->json([
+ //       'status' => 400,
+ //       'message' => 'Your withdrawal request is denied due to illegal betting activities. Illegal count: ' . $userData->illegal_count
+ //   ], 400);
+//}
+
+		// illgeal betitng condtion end 
+
+    // Automatically set the type based on the amount
+    //if ($amount <= 10000) {
+    //    $type = 0;  // If amount is <= 10000, set type to 0
+   // } elseif ($amount > 10000) {
+    //    $type = 1;  // If amount is > 10000, set type to 1
+  //  }
+		
+		////////////////////////
+		
+		// Automatically set the type based on the amount, but allow manual type 2
+if ($type == 2) {
+    // Keep type 2 as it is
+} elseif ($amount <= 10000) {
+    $type = 0;  // If amount is <= 10000, set type to 0
+} elseif ($amount > 10000) {
+    $type = 1;  // If amount is > 10000, set type to 1
+}
+
+		///////////////////////
+		
+
+    // Define valid ranges for each type
+    if ($type == 0) {
+        $minAmount = 110;
+        $maxAmount = 10000;
+    } elseif ($type == 1) {
+        $minAmount = 10001;
+        $maxAmount = 100000;
+    } elseif ($type == 2) {
+        $minAmount = 2;
+        $maxAmount = 5000;
+    } else {
+        $response = [
+            'status' => 400,
+            'message' => 'Invalid withdrawal type!'
+        ];
+        return response()->json($response, 200);
+    }
+
+    // Check if the amount is within the valid range based on the type
+    if ($amount < $minAmount || $amount > $maxAmount) {
+        $response = [
+            'status' => 400,
+            'message' => "The minimum withdraw for this type is $minAmount and maximum withdraw is $maxAmount."
+        ];
+        return response()->json($response, 200);
+    }
+
+    // Check if there's a pending withdrawal
+    $lastWithdrawal = DB::table('withdraws')
+        ->where('user_id', $userid)
+        ->orderBy('created_at', 'desc')
+        ->first();
+
+    if ($lastWithdrawal && $lastWithdrawal->status == 1) { // Assuming 1 is for pending
+        return response()->json([
+            'status' => 400,
+            'message' => 'You cannot withdraw again until your previous request is approved or rejected.'
+        ], 400);
+    }
+
+    // Limit to three withdrawals per day
+    $withdrawCount = DB::table('withdraws')
+        ->where('user_id', $userid)
+        ->whereDate('created_at', now())
+        ->where('status', 2) // Assuming 2 is for successful withdrawal
+        ->count();
+
+    if ($withdrawCount >= 3) {
+        $response = [
+            'status' => 400,
+            'message' => 'You can only withdraw 3 times in a day.'
+        ];
+        return response()->json($response, 400);
+    }
+
+    $date = date('YmdHis');
+    $rand = rand(11111, 99999);
+    $orderid = $date . $rand;
+
+    // For type 2, multiply by 93 to convert to USDT
+    if ($type == 2) {
+        $usdtAmount = $amount;
+        $actualAmount = $amount * 94; // The actual amount in the database should also be multiplied by 93
+    } else {
+        $usdtAmount = $amount;  // No conversion needed for type 0 or 1
+        $actualAmount = $amount;
+    }
+
+    // Proceed with the logic if the amount is within the correct range
+    if ($amount >= $minAmount && $amount <= $maxAmount) {
+        // Here you can insert your logic to check the user's balance, first_recharge, etc.
+        $wallet = DB::select("SELECT wallet, first_recharge FROM users WHERE id=$userid");
+        $user_wallet = $wallet[0]->wallet;
+        $first_recharge = $wallet[0]->first_recharge;
+        
+        
+                // Check if the user's wallet has enough balance
+        if ($type == 2) {
+            $requiredAmount = $amount * 92; // Multiply by 92 for type 2
+        } else {
+            $requiredAmount = $amount;
+        }
+        
+        if ($user_wallet < $requiredAmount) {
+            return response()->json([
+                'status' => 400,
+                'message' => 'Insufficient balance for withdrawal!'
+            ], 400);
+        }
+		
+		//////// beed to bet amount zero start
+		 $userData = DB::table('users')->where('id', $userid)->first();
+		 $recharge_status = $userData->recharge; 
+		
+			if ($recharge_status != 0) {
+			return response()->json([
+				'status' => 400,
+				'message' => 'Need to bet amount 0 to be able to withdraw.'
+			], 400);
+		}
+		
+		///////////end////////////
+
+        if ($user_wallet >= $amount) {
+            // Check if the user has done the first recharge
+            if ($first_recharge == 1) {
+                // Proceed with withdrawal
+                $data = DB::table('withdraws')->insert([
+                    'user_id' => $userid,
+                    'amount' => $usdtAmount, // Insert the USDT amount for type 2
+                    'actual_amount' => $actualAmount, // Insert the actual amount (after multiplying by 93 for type 2)
+                    'account_id' => $accountid, 
+                    'type' => $type, // Insert the correct type (0, 1, or 2)
+                    'order_id' => $orderid,
+                    'status' => 1, // Assuming 1 is for pending
+                    'typeimage' => "https://root.globalbet24.live/uploads/fastpay_image.png",
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+                // Check if the insert was successful
+                if ($data) {
+                    // Update user's wallet balance
+                   // DB::select("UPDATE users SET wallet = wallet - $amount WHERE id = $userid");
+                   
+                                   // Update user's wallet balance
+                if ($type == 2) {
+                    $deductedAmount = $amount * 94; // Multiply by 94 if type is 2
+                } else {
+                    $deductedAmount = $amount;
+                }
+                
+                DB::select("UPDATE users SET wallet = wallet - $deductedAmount WHERE id = $userid");
+
+                    $deduct_jili = jilli::deduct_from_wallet($userid, $deductedAmount);
+
+                    $response = [
+                        'status' => 200,
+                        'message' => 'Withdraw request successful!'
+                    ];
+                    return response()->json($response, 200);
+                } else {
+                    $response = [
+                        'status' => 400,
+                        'message' => 'Internal error during withdraw request insertion!'
+                    ];
+                    return response()->json($response, 400);
+                }
+            } else {
+                $response = [
+                    'status' => 400,
+                    'message' => 'First recharge is mandatory!'
+                ];
+                return response()->json($response, 400);
+            }
+        } else {
+            $response = [
+                'status' => 400,
+                'message' => 'Insufficient balance!'
+            ];
+            return response()->json($response, 200);
+        }
+    } else {
+        $response = [
+            'status' => 400,
+            'message' => 'Invalid amount! Please check the minimum and maximum withdrawal limits.'
+        ];
+        return response()->json($response, 200);
+    }
+}
+	
+	public function withdrawold(Request $request)
+{
+    $now = Carbon::now('Asia/Kolkata')->format('Y-m-d H:i:s');
+
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required',
+        'account_id' => 'required',
+        'type' => 'required',
+        'amount' => 'required|numeric',
+    ]);
+
+    $validator->stopOnFirstFailure();
+
+    if ($validator->fails()) {
+        $response = [
+            'status' => 400,
+            'message' => $validator->errors()->first()
+        ]; 
+
+        return response()->json($response, 200);
+    }
+
+    $userid = $request->input('user_id');
+    $accountid = $request->input('account_id');
+    $amount = $request->input('amount');
+    $type = $request->input('type');
 
     // Define the minimum and maximum amounts based on the type
     if ($type == 0) {
@@ -2558,7 +3161,7 @@ public function wallet_transfer(Request $request)
     }
 
     // Check if there's a pending withdrawal
-    $lastWithdrawal = DB::table('withdraw_histories')
+    $lastWithdrawal = DB::table('withdraws')
         ->where('user_id', $userid)
         ->orderBy('created_at', 'desc')
         ->first();
@@ -2571,7 +3174,7 @@ public function wallet_transfer(Request $request)
     }
 
     // Limit to three withdrawals per day
-    $withdrawCount = DB::table('withdraw_histories')
+    $withdrawCount = DB::table('withdraws')
         ->where('user_id', $userid)
         ->whereDate('created_at', now())
         ->where('status', 2) // Assuming 2 is for successful withdrawal
@@ -2622,7 +3225,7 @@ public function wallet_transfer(Request $request)
                 // Update user's wallet balance
                 DB::select("UPDATE users SET wallet = wallet - $amount WHERE id = $userid");
 
-                $deduct_jili = jilli::deduct_from_wallet($userid, $amount);
+                //$deduct_jili = jilli::deduct_from_wallet($userid, $amount);
 
                 if ($data) {
                     $response = [
@@ -3044,7 +3647,7 @@ public function customer_service()
 		   $betamount = $item->betamount;
 		   $userid = $item->userid;
 			
-			DB::select("UPDATE users SET wallet = wallet + $betamount * 0.01 WHERE id = $userid");
+			DB::select("UPDATE users SET wallet = wallet + $betamount * 0.01 , recharge = recharge + $betamount * 0.01 WHERE id = $userid");
 		$rebate_rate=0.01;
 		  $insert= DB::table('wallet_histories')->insert([
         'user_id' => $userid,
@@ -3308,6 +3911,7 @@ WHERE
     if (!empty($user)) {
        $usser= DB::table('users')->where('id', $userid)->update([
             'wallet' => $user->wallet + $amount, // Add amount to wallet
+		   'recharge' => $user->recharge + $amount,
         ]);
     }else{
      return response()->json([
@@ -3565,7 +4169,7 @@ public function getPaymentLimits()
 //         ]);
 //     }
 // }
-
+	
 public function usdt_payin(Request $request)
 {
     // Validate only the required fields for type 2
@@ -3695,8 +4299,74 @@ public function qr_view(Request $request)
         ], 400);
     }
 }
-
 public function withdraw_history(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required',
+        'type' => 'nullable', // type ko nullable kar diya
+    ]);
+
+    $date = date('Y-m-d h:i:s');
+    $validator->stopOnFirstFailure();
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 400,
+            'message' => $validator->errors()->first()
+        ], 400);
+    }
+
+    $user_id = $request->user_id;
+    $status = $request->status;
+    $type = $request->type;  
+    $created_at = $request->created_at; 
+    $where = [];
+
+    if (!empty($user_id)) {
+        $where[] = "withdraws.`user_id` = '$user_id'";
+    }
+
+    if (!empty($status)) {
+        $where[] = "`withdraws`.`status` = '$status'";
+    }
+
+    // Type filter ko optional banaya
+    if ($type !== null && $type !== '') {
+        if ($type == '0' || $type == '1') {
+            $where[] = "`withdraws`.`type` IN (0, 1)";
+        } else {
+            $where[] = "`withdraws`.`type` = '$type'";
+        }
+    }
+
+    if (!empty($created_at)) {
+        $newDateString = date("Y-m-d", strtotime($created_at));
+        $where[] = "DATE(`withdraws`.`created_at`) = '$newDateString'";
+    }
+
+    $query = "SELECT `id`, `user_id`, `amount`, `type`, `status`, `typeimage`, `order_id`, `created_at`,`rejectmsg` FROM withdraws";
+
+    if (!empty($where)) {
+        $query .= " WHERE " . implode(" AND ", $where);
+    }
+
+    $query .= " ORDER BY withdraws.id DESC";
+
+    $payin = DB::select($query);
+
+    if ($payin) {
+        return response()->json([
+            'message' => 'Successfully',
+            'status' => 200,
+            'data' => $payin
+        ], 200);
+    } else {
+        return response()->json(['message' => 'No record found', 'status' => 200, 'data' => []], 400);
+    }
+}
+
+	
+public function withdraw_historyold(Request $request)
 {
     $validator = Validator::make($request->all(), [
         'user_id' => 'required',

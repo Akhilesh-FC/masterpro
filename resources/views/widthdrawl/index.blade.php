@@ -94,10 +94,13 @@ body {
                 <thead class="thead-dark">
                    <tr>
                       <th>Id</th>
+                      <th>User Id</th>
                       <th>User name</th>
                       <th>Bank name</th>
                       <th>Ac. No.</th>
                       <th>IFSC</th>
+                      <th>UPI ID</th>
+					   <th>Illegal Count</th>
                       <th>Amount</th>
                       <!--<th>Actual_amount</th>-->
                       <th>Mobile</th>
@@ -109,11 +112,14 @@ body {
                 <tbody>
                   @foreach($widthdrawls as $item)
                    <tr>
-                      <td>{{$item->id}}</td>
+                      <td>{{$item->user_id}}</td>
+                      <td>{{$item->userid}}</td>
                       <td>{{$item->uname}}</td>
                        <td>{{$item->bname}}</td>
                         <td>{{$item->acno}}</td>
-                         <td>{{$item->ifsc}}</td>   
+                        <td>{{$item->ifsc}}</td>
+                        <td>{{$item->upi_id}}</td>
+					   <td>{{$item->illegal_count}}</td>
                       <td>{{$item->amount}}</td>
                       <!--<td>{{$item->actual_amount}}</td>-->
                       <td>{{$item->mobile}}</td>
@@ -121,14 +127,15 @@ body {
                       <td>
                           
                             <div class="dropdown">
-                                <button class="btn btn-warning dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                Pending
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                    <a class="dropdown-item" href="{{ route('widthdrawl.success', $item->id) }}">Approved</a>
-                                    <a class="dropdown-item" data-toggle="modal" data-target="#exampleModalCenter{{$item->id}}">Reject</a>
-                                </div>
-                            </div>
+    <button class="btn btn-warning dropdown-toggle" type="button" id="dropdownMenuButton{{ $item->id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Pending
+    </button>
+    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton{{ $item->id }}">
+        <a class="dropdown-item" href="{{ route('widthdrawl.success', $item->id) }}">Approved</a>
+        <a class="dropdown-item" data-toggle="modal" data-target="#exampleModalCenter{{$item->id}}">Reject</a>
+        <a class="dropdown-item" href="{{ route('widthdrawl.upi', $item->id) }}">UPI</a>
+    </div>
+</div>
                           
                           
                     
@@ -166,6 +173,7 @@ body {
     </div>
 </div>
 
+ 
 						  
                       </td>
                      @elseif($item->status==2)

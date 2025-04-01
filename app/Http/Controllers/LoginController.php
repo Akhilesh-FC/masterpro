@@ -127,7 +127,7 @@ FROM users;");
 					(select count(id) from users where created_at BETWEEN '$startdate' and '$enddate' and users.status='1')as activeuser,
                     (SELECT COUNT(id) FROM game_settings WHERE created_at BETWEEN '$startdate' AND '$enddate') as totalgames,
                     (SELECT COUNT(id) FROM bets WHERE created_at BETWEEN '$startdate' AND '$enddate') as totalbet,
-                    (SELECT COUNT(id) FROM feedbacks WHERE created_at BETWEEN '$startdate' AND '$enddate') as totalfeedback,
+                    (SELECT COUNT(id) FROM feedback WHERE created_at BETWEEN '$startdate' AND '$enddate') as totalfeedback,
                     COALESCE((SELECT SUM(cash) FROM payins WHERE status = 2 AND DATE(created_at) BETWEEN '$startdate' AND '$enddate'), 0) as totaldeposit,
                     COALESCE((SELECT SUM(amount) FROM withdraws WHERE status = 2 AND DATE(created_at) BETWEEN '$startdate' AND '$enddate'), 0) as tamount,
                     COALESCE((SELECT SUM(amount) FROM withdraws WHERE status = 2 AND DATE(created_at) BETWEEN '$startdate' AND '$enddate'), 0) as totalwithdraw,

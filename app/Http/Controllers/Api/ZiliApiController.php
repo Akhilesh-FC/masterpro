@@ -27,10 +27,11 @@ class ZiliApiController extends Controller
 {
 	
 	public function get_reseller_info(?string $manager_key=null){
-		$manager_key = $manager_key??'FEGISo8cR74cf';
+		$manager_key = $manager_key??'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-reseller-info';
 		//$manager_key = 'FEGISo8cR74cf';
-	    $headers = ['authorization' => 'Bearer ' .$manager_key];
+	    $headers = ['authorization' => 'Bearer ' .$manager_key, 'authorizationtoken' => 'Bearer '.$authorizationtoken];
 		
 		try {
 				$response = Http::withHeaders($headers)->get($apiUrl);
@@ -59,10 +60,12 @@ class ZiliApiController extends Controller
 		$user_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImppbGxpX2FjY291bnRfaWQiOiJsNndxYm92d2w2ajN3YTE1M2x0NDJoY2E2YiJ9LCJhbGdvcml0aG0iOiJSUzI1NiIsImlhdCI6MTczNTIyMzA0M30.fGj4yHHkkzfAJcmiXxcU2qMvBTJb_VzXY6gLzA1rq5c';
 		
 		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-user-info';
-		$manager_key = 'FEGISo8cR74cf';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 	    $headers = [
 				'authorization' => 'Bearer ' .$manager_key,
-				'validateuser' => 'Bearer '.$user_token
+				'validateuser' => 'Bearer '.$user_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
 			];
 		$payloadpar = ['payload'=>''];
 		
@@ -94,24 +97,25 @@ class ZiliApiController extends Controller
 	public function user_register(Request $request){
 	
          $validator = Validator::make($request->all(), [
-					'mobile' => 'required|unique:users,mobile',
-					'email' => 'required|email|unique:users,email'
+					'mobile' => 'required|unique:users,mobile'
+					//'email' => 'required|email|unique:users,email'
 				]);
 				$validator->stopOnFirstFailure();
 				if ($validator->fails()) {
 					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
 				}     
 			$mobile = $request->mobile;
-			$email = $request->email;   
+			//$email = $request->email;   
 
-			$manager_key = 'FEGISo8cR74cf';
-			$apiUrl = 'https://api.gamebridge.co.in/seller/v1/end-user-registration';
+			$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+			$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilli-game-registration';
 			
 			    // Custom headers
-			$headers = ['authorization' => 'Bearer ' . $manager_key];
+			$headers = ['authorization' => 'Bearer ' . $manager_key,'authorizationtoken' => 'Bearer '.$authorizationtoken];
 
 				//   request data //
-			$requestData  = ['email'=>$email,'mobile'=>$mobile];
+			$requestData = ['mobile' => $mobile];
 			$requestData  = json_encode($requestData);
 			$requestData  = base64_encode($requestData);
 		    $payload = ['payload'=>$requestData];
@@ -123,14 +127,17 @@ class ZiliApiController extends Controller
 				// Log response
 			   // Log::info('PayIn API Response:', ['response' => $response->body()]);
 			   // Log::info('PayIn API Status Code:', ['status' => $response->status()]);
-
+                //dd($response->body());
 				// Parse API response
 				$apiResponse = json_decode($response->body());
+				//dd($apiResponse);
+				
 
 				// Check if API call was successful
 				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					  $account_token = $apiResponse->account_token;
-					  $inserted_id = DB::table('users')->insertGetId(['mobile'=>$mobile,'email'=>$email,'account_token'=>$account_token ]);
+					  $account_no = $apiResponse->accountNo;
+					//dd($account_token);
+					  $inserted_id = DB::table('users')->insertGetId(['mobile'=>$mobile , 'accountNo'=>$account_no]);
 					  return response()->json([
 						  'status' => 200,
 						  'message' => 'user registered successfully.',
@@ -147,54 +154,14 @@ class ZiliApiController extends Controller
 				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
 			}
        }
-	public function all_game_list(Request $request){
-			
-			$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
-			$token = 'FEGISo8cR74cf';
-			
-			$headers = [
-				'authorization' => 'Bearer ' .$token
-			];
-			$payload = ['payload'=>''];
-			
-			try {
-				// Make API request with headers and JSON body
-				$response = Http::withHeaders($headers)->post($apiUrl, $payload);
-				//dd($response);
-				// Parse API response
-				$apiResponse = json_decode($response->body());
-				//dd($apiResponse);
-                
-				// Check if API call was successful
-				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					  return response()->json([
-						  'status' => 200,
-						  'message' => 'Game list..',
-						   'data' =>$apiResponse->data,
-						  'fish' =>$apiResponse->fish,
-						  'slot' =>$apiResponse->slot,
-						  'tableandcard' =>$apiResponse->tableandcard,
-						  'crash' =>$apiResponse->crash
-					  ], 200); 
-				}
-
-				// Handle API errors
-				return response()->json(['status' => 400,'message' => 'Failed to get game list.', 'api_response' => $response->body()], 400);
-			} catch (\Exception $e) {
-				// Log exception
-				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
-				// Return server error response
-				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
-			}
-		}
-	
-		public function all_game_list_test(Request $request)
+	public function all_game_list(Request $request)
 {
     $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
-    $token = 'FEGISo8cR74cf';
+    $token = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 
     $headers = [
-        'authorization' => 'Bearer ' . $token
+        'authorization' => 'Bearer ' . $token, 'authorizationtoken' => 'Bearer '.$authorizationtoken
     ];
     $payload = ['payload' => ''];
 
@@ -320,9 +287,64 @@ class ZiliApiController extends Controller
         ], 400);
     }
 }
-
 	
-	public function get_game_url(Request $request){
+		public function all_game_list_old(Request $request){
+			$validator = Validator::make($request->all(), [
+				'user_id' => 'required|exists:users,id'
+			]);
+			$validator->stopOnFirstFailure();
+			if ($validator->fails()) {
+				return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+			} 
+			$user_id = $request->user_id;
+			$account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+			
+			$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
+			$token = 'FEGISwJ7ihr41';
+			$authorizationtoken='17401563258744';
+			
+			$headers = [
+				'authorization' => 'Bearer ' .$token,
+				'validateuser' => 'Bearer '.$account_token,
+				'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+			$payload = ['payload'=>''];
+			
+			try {
+				// Make API request with headers and JSON body
+				$response = Http::withHeaders($headers)->post($apiUrl, $payload);
+
+				// Log response
+			   // Log::info('PayIn API Response:', ['response' => $response->body()]);
+			   // Log::info('PayIn API Status Code:', ['status' => $response->status()]);
+
+				// Parse API response
+				$apiResponse = json_decode($response->body());
+                
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					  return response()->json([
+						  'status' => 200,
+						  'message' => 'Game list..',
+						   'data' =>$apiResponse->data,
+						  'fish' =>$apiResponse->fish,
+						  'slot' =>$apiResponse->slot,
+						  'tableandcard' =>$apiResponse->tableandcard,
+						  'crash' =>$apiResponse->crash
+					  ], 200); 
+				}
+
+				// Handle API errors
+				return response()->json(['status' => 400,'message' => 'Failed to get game list.', 'api_response' => $response->body()], 400);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
+			}
+		}
+	
+	public function get_game_url_old(Request $request){
                 $validator = Validator::make($request->all(), [
 								'user_id' => 'required|exists:users,id',
 								'game_id' => 'required'
@@ -334,14 +356,16 @@ class ZiliApiController extends Controller
 		
 				$user_id = $request->user_id;
 				$game_id = $request->game_id;
-		        $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-game-url-by-gameid';
-		        $account_token = DB::table('users')->where('id',$user_id)->value('account_token');
-		        $manager_key = 'FEGISo8cR74cf';
+		        $apiUrl = 'https://api.gamebridge.co.in/seller/v1//get-newjilli-game-url-by-gameid';
+		        $account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		        $manager_key = 'FEGISwJ7ihr41';
+				$authorizationtoken='17401563258744';
 		        $headers = [
 							'authorization' => 'Bearer ' .$manager_key,
-							'validateuser' => 'Bearer '.$account_token
+							'validateuser' => 'Bearer '.$account_token,
+							'authorizationtoken' => 'Bearer '.$authorizationtoken
 						];
-		       $pay_load = ['game_id'=>$game_id];
+		       $pay_load = ['game_id'=>$game_id,'mobile'=>$account_token];
 		       $pay_load = json_encode($pay_load);
 		       $pay_load = base64_encode($pay_load);
 		       $payloadpar = ['payload'=>$pay_load];  
@@ -349,8 +373,9 @@ class ZiliApiController extends Controller
 		try {
 				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
 				$apiResponse = json_decode($response->body());
-			    $data = $apiResponse->data;
-		        $game_url = $data->Data;
+			    //dd($apiResponse);
+			    $data = $apiResponse->gameUrl;
+		        $game_url = $data->gameUrl;
 			
 			
 				// Check if API call was successful
@@ -359,7 +384,7 @@ class ZiliApiController extends Controller
 						  'status' => 200,
 						  'message' => 'Game url..',
 						  'game_url'=>$game_url,
-						   'data' =>$apiResponse->data,
+						   //'data' =>$apiResponse->gameUrl,
 					  ], 200); 
 				}
 
@@ -373,6 +398,136 @@ class ZiliApiController extends Controller
 			}
 	}
 	
+	public function get_game_url(Request $request)
+{		
+ // First, update the wallet
+    $this->update_jilli_wallets($request);
+		
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required|exists:users,id',
+        'game_id' => 'required',
+    ]);
+    $validator->stopOnFirstFailure();
+
+    if ($validator->fails()) {
+        return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+    }
+
+    $user_id = $request->user_id;
+    $game_id = $request->game_id;
+
+    $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilli-game-url-by-gameid';
+    $manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+
+    // Get the user's account token
+    $account_token = DB::table('users')->where('id', $user_id)->value('accountNo');
+    if (!$account_token) {
+        return response()->json(['status' => 400, 'message' => 'Invalid account token.'], 400);
+    }
+
+    // Prepare headers and payload
+    $headers = [
+        'authorization' => 'Bearer ' . $manager_key,
+        'validateuser' => 'Bearer ' . $account_token,
+		'authorizationtoken' => 'Bearer '.$authorizationtoken
+    ];
+
+    $payload = base64_encode(json_encode(['gameId' => $game_id, 'mobile' => $account_token]));
+    $payloadPar = ['payload' => $payload];
+
+    try {
+        // Send API request
+        $response = Http::withHeaders($headers)->post($apiUrl, $payloadPar);
+        $apiResponse = json_decode($response->body());
+
+        // Check if the response and gameUrl exist
+        if ($response->successful() && isset($apiResponse->error) && !$apiResponse->error) {
+            if (isset($apiResponse->gameUrl)) {
+                $game_url = $apiResponse->gameUrl;
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Game URL retrieved successfully.',
+                    'game_url' => $game_url,
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 400,
+                    'message' => 'Game URL not found in the response.',
+                ], 400);
+            }
+        }
+
+        // Handle API error responses
+        return response()->json([
+            'status' => 400,
+            'message' => 'Failed to get game URL.',
+            'api_response' => $response->body(),
+        ], 400);
+    } catch (\Exception $e) {
+        // Log the exception
+        Log::error('Get Game URL API Error:', ['error' => $e->getMessage()]);
+
+        // Return an internal server error response
+        return response()->json([
+            'status' => 500,
+            'message' => 'Internal Server Error',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+	public function update_jilli_wallets(Request $request){
+		 $validator = Validator::make($request->all(), [
+								'user_id' => 'required|exists:users,id',
+		                    	//'amount'=>'required|numeric|gt:0'
+							]);
+				$validator->stopOnFirstFailure();
+				if ($validator->fails()) {
+					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+				} 
+		
+		$user_id = $request->user_id;
+		//$amount = $request->amount;
+		$account_token = DB::table('users')
+    ->where('id', $user_id)
+    ->select('accountNo', 'wallet')
+    ->first();
+		$userId=$account_token->accountNo;
+		$wallet=$account_token->wallet;
+
+		//dd($userId,$wallet);
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/assign-same-new-jilli-wallet';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+	    $headers = [
+				'authorization' => 'Bearer ' .$manager_key,
+				'validateuser' => 'Bearer '.$userId,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+		$pay_load = ['amount'=>$wallet,'mobile'=>$userId];
+		$pay_load = json_encode($pay_load);
+		$pay_load = base64_encode($pay_load);
+		$payloadpar = ['payload'=>$pay_load];
+		
+		try {
+				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+				$apiResponse = json_decode($response->body());
+			   //dd($apiResponse);
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					return response()->json(['status'=>200,'message'=>$apiResponse->msg]);
+				}
+				// Handle API errors
+				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status'=>400,'message'=>$e->getMessage()]);
+			}
+	}
+	
 	
 	public function get_jilli_transactons_details(Request $request){
                  $validator = Validator::make($request->all(), [
@@ -383,18 +538,27 @@ class ZiliApiController extends Controller
 					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
 				} 
 		$user_id = $request->user_id;
-		$account_token = DB::table('users')->where('id',$user_id)->value('account_token');
-		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-jilli-transactons-details';
-	    $manager_key = 'FEGISo8cR74cf';
+		$account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		//dd($account_token);
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-new-jilli-transaction-his';
+	    $manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 	    $headers = [
 					'authorization' => 'Bearer ' .$manager_key,
-					'validateuser' => 'Bearer '.$account_token
+					'validateuser' => 'Bearer '.$account_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
 				   ];
-		$payloadpar = ['payload'=>''];
+		//dd($headers);
+		 $payload = base64_encode(json_encode(['mobile' => $account_token]));
+		//dd($payload);
+        $payloadpar = ['payload' => $payload];
+		//$payloadpar = ['payload'=>''];
 		
 		try {
 				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+			    //dd($response);
 				$apiResponse = json_decode($response->body());
+			    //dd($apiResponse);
 				// Check if API call was successful
 				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
 					  return response()->json([
@@ -413,9 +577,9 @@ class ZiliApiController extends Controller
 				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
 			}
 	}
+	 //deduct-newjilliuser-wallet-by-id
 	
-	
-	public function jilli_deduct_from_wallet(Request $request){
+	public function jilli_deduct_from_wallet(Request $request){  
 		 $validator = Validator::make($request->all(), [
 								'user_id' => 'required|exists:users,id',
 			                     'amount'=>'required|numeric|gt:0'
@@ -426,15 +590,17 @@ class ZiliApiController extends Controller
 				} 
 		$user_id = $request->user_id;
 		$amount = $request->amount;
-		$account_token = DB::table('users')->where('id',$user_id)->value('account_token');
-		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/amount-transfer-from-user';
-	    $manager_key = 'FEGISo8cR74cf';
+		$account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/deduct-newjilliuser-wallet-by-id';
+	    $manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 	    $headers = [
 					'authorization' => 'Bearer ' .$manager_key,
-					'validateuser' => 'Bearer '.$account_token
+					'validateuser' => 'Bearer '.$account_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
 				   ];
 	
-		       $pay_load = ['transfer_amount'=>$amount];
+		       $pay_load = ['amount'=>$amount,'mobile'=>$account_token];
 		       $pay_load = json_encode($pay_load);
 		       $pay_load = base64_encode($pay_load);
 		       $payloadpar = ['payload'=>$pay_load];
@@ -442,18 +608,14 @@ class ZiliApiController extends Controller
 		try {
 				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
 				$apiResponse = json_decode($response->body());
+			   //dd($apiResponse);
 				// Check if API call was successful
 				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					  return response()->json([
-						  'status' => 200,
-						  'message' => 'Transaction details..',
-						  'newBalance'=>$apiResponse->newBalance,
-						  'utr_no'=>$apiResponse->utr_no
-					  ], 200); 
+					  return response()->json(['status'=>200,'message'=>$apiResponse->msg]);
 				}
 
 				// Handle API errors
-				return response()->json(['status' => 400,'message' => 'Failed to get transaction details.', 'api_response' => $response->body()], 400);
+				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
 			} catch (\Exception $e) {
 				// Log exception
 				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
@@ -472,12 +634,14 @@ class ZiliApiController extends Controller
 				} 
 		
 				$user_id = $request->user_id;
-		        $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-bet-history';
+		        $apiUrl = 'https://api.gamebridge.co.in/seller/v1/jilli_get_bet_history';
 		        $account_token = DB::table('users')->where('id',$user_id)->value('account_token');
-		        $manager_key = 'FEGISo8cR74cf';
+		        $manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 		        $headers = [
 							'authorization' => 'Bearer ' .$manager_key,
-							'validateuser' => 'Bearer '.$account_token
+							'validateuser' => 'Bearer '.$account_token,
+					'authorizationtoken' => 'Bearer '.$authorizationtoken
 						];
 		       $payloadpar = ['payload'=>''];  
 		
@@ -519,14 +683,16 @@ class ZiliApiController extends Controller
 		
 		$user_id = $request->user_id;
 		$amount = $request->amount;
-		 $account_token = DB::table('users')->where('id',$user_id)->value('account_token');
-		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/transfer-amount-to-user';
-		$manager_key = 'FEGISo8cR74cf';
+		 $account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/add-newjilliuser-wallet-by-id';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 	    $headers = [
 				'authorization' => 'Bearer ' .$manager_key,
-				'validateuser' => 'Bearer '.$account_token
+				'validateuser' => 'Bearer '.$account_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
 			];
-		$pay_load = ['transfer_amount'=>$amount];
+		$pay_load = ['amount'=>$amount,'mobile'=>$account_token];
 		$pay_load = json_encode($pay_load);
 		$pay_load = base64_encode($pay_load);
 		$payloadpar = ['payload'=>$pay_load];
@@ -534,10 +700,10 @@ class ZiliApiController extends Controller
 		try {
 				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
 				$apiResponse = json_decode($response->body());
-			   dd($apiResponse);
+			   //dd($apiResponse);
 				// Check if API call was successful
 				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
-					return response()->json(['status'=>200,'message'=>$apiResponse->msg,'utr_no'=>$apiResponse->utr_no]);
+					return response()->json(['status'=>200,'message'=>$apiResponse->msg]);
 				}
 				// Handle API errors
 				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
@@ -548,6 +714,69 @@ class ZiliApiController extends Controller
 				return response()->json(['status'=>400,'message'=>$e->getMessage()]);
 			}
 	}
+	
+	public function get_jilli_wallet(Request $request){
+		 $validator = Validator::make($request->all(), [
+								'user_id' => 'required|exists:users,id'
+							]);
+				$validator->stopOnFirstFailure();
+				if ($validator->fails()) {
+					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+				} 
+		
+		$user_id = $request->user_id;
+		$amount = $request->amount;
+		 $account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilliuser-wallet-by-id';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+	    $headers = [
+				'authorization' => 'Bearer ' .$manager_key,
+				'validateuser' => 'Bearer '.$account_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+		$pay_load = ['mobile'=>$account_token];
+		$pay_load = json_encode($pay_load);
+		$pay_load = base64_encode($pay_load);
+		$payloadpar = ['payload'=>$pay_load];
+		
+		try {
+				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+				$apiResponse = json_decode($response->body());
+			//dd($apiResponse);
+			    $data = $apiResponse->data;
+
+// Ensure $winning_wallet is defined properly
+$winning_wallet = $data; // Assuming $data contains the required values
+
+// Assign the values to $wallet and $winning_wallet
+$wallet = $data[0]->njl_money;
+$winning_wallet_value = $data[0]->njl_winning;
+
+// Combine them into an array
+$combined = [
+    'wallet' => $wallet,
+    'winning_wallet' => $winning_wallet_value,
+];
+
+
+			     //dd($data);
+			     
+			   //dd($apiResponse->data);
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					return response()->json(['status'=>200,'message'=>$apiResponse->msg,'data'=>$combined]);
+				}
+				// Handle API errors
+				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status'=>400,'message'=>$e->getMessage()]);
+			}
+	}
+	
 	
 	
 	public function update_main_wallet(Request $request)
@@ -565,10 +794,12 @@ class ZiliApiController extends Controller
 		$token=User::where('id',$user_id)->first();
 		$user_token=$token->account_token;
 		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-user-info';
-		$manager_key = 'FEGISo8cR74cf';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
 	    $headers = [
 				'authorization' => 'Bearer ' .$manager_key,
-				'validateuser' => 'Bearer '.$user_token
+				'validateuser' => 'Bearer '.$user_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
 			];
 		$payloadpar = ['payload'=>''];
 		
@@ -576,7 +807,7 @@ class ZiliApiController extends Controller
 				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
 				$apiResponse = json_decode($response->body());
 			$money=$apiResponse->money;
-			//dd($money);
+			dd($money);
 				// Check if API call was successful
 				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
 					$update=User::where('id', $user_id)->update(['wallet' => $money]);
@@ -592,6 +823,385 @@ class ZiliApiController extends Controller
 			}
 		
 	}
+	
+	
+	public function all_game_list_test(Request $request){
+			
+			$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-all-games-list';
+			$token = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+			
+			$headers = [
+				'authorization' => 'Bearer ' .$token,'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+			$payload = ['payload'=>''];
+			
+			try {
+				// Make API request with headers and JSON body
+				$response = Http::withHeaders($headers)->post($apiUrl, $payload);
+				//dd($response);
+				// Parse API response
+				$apiResponse = json_decode($response->body());
+				//dd($apiResponse);
+                
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					  return response()->json([
+						  'status' => 200,
+						  'message' => 'Game list..',
+						   'data' =>$apiResponse->data,
+						  'fish' =>$apiResponse->fish,
+						  'slot' =>$apiResponse->slot,
+						  'tableandcard' =>$apiResponse->tableandcard,
+						  'crash' =>$apiResponse->crash
+					  ], 200); 
+				}
+
+				// Handle API errors
+				return response()->json(['status' => 400,'message' => 'Failed to get game list.', 'api_response' => $response->body()], 400);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status' => 400, 'message' => 'Internal Server Error','error' => $e->getMessage()], 400);
+			}
+		}
+	
+	public function update_jilli_wallet(Request $request){
+		 $validator = Validator::make($request->all(), [
+								'user_id' => 'required|exists:users,id',
+		                    	'amount'=>'required|numeric|gt:0'
+							]);
+				$validator->stopOnFirstFailure();
+				if ($validator->fails()) {
+					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+				} 
+		
+		$user_id = $request->user_id;
+		//$amount = $request->amount;
+		$account_token = DB::table('users')
+    ->where('id', $user_id)
+    ->select('accountNo', 'wallet')
+    ->first();
+		$userId=$account_token->accountNo;
+		$wallet=$account_token->wallet;
+
+		//dd($userId,$wallet);
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/assign-same-new-jilli-wallet';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+	    $headers = [
+				'authorization' => 'Bearer ' .$manager_key,
+				'validateuser' => 'Bearer '.$userId,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+		$pay_load = ['amount'=>$wallet,'mobile'=>$userId];
+		$pay_load = json_encode($pay_load);
+		$pay_load = base64_encode($pay_load);
+		$payloadpar = ['payload'=>$pay_load];
+		
+		try {
+				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+				$apiResponse = json_decode($response->body());
+			   //dd($apiResponse);
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					return response()->json(['status'=>200,'message'=>$apiResponse->msg]);
+				}
+				// Handle API errors
+				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status'=>400,'message'=>$e->getMessage()]);
+			}
+	}
+	
+	public function update_jilli_to_user_wallet(Request $request){
+		 $validator = Validator::make($request->all(), [
+								'user_id' => 'required|exists:users,id'
+							]);
+				$validator->stopOnFirstFailure();
+				if ($validator->fails()) {
+					return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+				} 
+		
+		$user_id = $request->user_id;
+		$amount = $request->amount;
+		 $account_token = DB::table('users')->where('id',$user_id)->value('accountNo');
+		$apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilliuser-wallet-by-id';
+		$manager_key = 'FEGISwJ7ihr41';
+		$authorizationtoken='17401563258744';
+	    $headers = [
+				'authorization' => 'Bearer ' .$manager_key,
+				'validateuser' => 'Bearer '.$account_token,
+			'authorizationtoken' => 'Bearer '.$authorizationtoken
+			];
+		$pay_load = ['mobile'=>$account_token];
+		$pay_load = json_encode($pay_load);
+		$pay_load = base64_encode($pay_load);
+		$payloadpar = ['payload'=>$pay_load];
+		
+		try {
+				$response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+				$apiResponse = json_decode($response->body());
+			//dd($apiResponse);
+			    $data = $apiResponse->data;
+			    
+			 //   DB::statement("UPDATE users SET recharge = recharge - ? WHERE id = ? AND recharge >= ?", [$requestAmount, $userId, $requestAmount]);
+
+
+// Ensure $winning_wallet is defined properly
+$winning_wallet = $data; // Assuming $data contains the required values
+
+// Assign the values to $wallet and $winning_wallet
+$wallet = $data[0]->njl_money;
+$winning_wallet_value = $data[0]->njl_winning;
+
+// Combine them into an array
+$combined = [
+  'wallet' => $wallet,
+    'winning_wallet' => $winning_wallet_value,
+	];
+			DB::table('users')
+    ->where('id', $user_id) // Find the user by ID
+    ->update(['wallet' => $winning_wallet_value]); // Update the wallet field
+    
+    //DB::select("UPDATE `users` SET `recharge`='0' WHERE `id`=$user_id");
+
+			     //dd($data);
+			     
+			   //dd($apiResponse->data);
+				// Check if API call was successful
+				if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+					return response()->json(['status'=>200,'message'=>$apiResponse->msg,'data'=>$combined]);
+				}
+				// Handle API errors
+				return response()->json(['status'=>400,'message'=>$apiResponse->msg]);
+			} catch (\Exception $e) {
+				// Log exception
+				Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+				// Return server error response
+				return response()->json(['status'=>400,'message'=>$e->getMessage()]);
+			}
+	}
+// public function update_jilli_to_user_wallet(Request $request)
+// {
+//     $validator = Validator::make($request->all(), [
+//         'user_id' => 'required|exists:users,id'
+//     ]);
+//     $validator->stopOnFirstFailure();
+//     if ($validator->fails()) {
+//         return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+//     }
+
+//     $user_id = $request->user_id;
+//     $amount = $request->amount;
+
+//     // Get the current 'recharge' value from the users table
+//     //$current_recharge = DB::table('users')->where('id', $user_id)->value('recharge');
+//     // Ensure that the recharge value does not go below zero after subtraction
+//     //$new_recharge = max(0, $current_recharge - $amount); // This will set the value to 0 if it goes negative
+
+//     // Update the 'recharge' value in the users table
+//     //DB::table('users')->where('id', $user_id)->update(['recharge' => $new_recharge]);
+
+//     $account_token = DB::table('users')->where('id', $user_id)->value('accountNo');
+//     $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilliuser-wallet-by-id';
+//     $manager_key = 'FEGISwJ7ihr41';
+//     $authorizationtoken = '17401563258744';
+//     $headers = [
+//         'authorization' => 'Bearer ' . $manager_key,
+//         'validateuser' => 'Bearer ' . $account_token,
+//         'authorizationtoken' => 'Bearer ' . $authorizationtoken,
+//     ];
+
+//     $pay_load = ['mobile' => $account_token];
+//     $pay_load = json_encode($pay_load);
+//     $pay_load = base64_encode($pay_load);
+//     $payloadpar = ['payload' => $pay_load];
+
+//     try {
+//         $response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+//         $apiResponse = json_decode($response->body());
+
+//         $data = $apiResponse->data;
+//         // Ensure $winning_wallet is defined properly
+//         $winning_wallet = $data; // Assuming $data contains the required values
+
+//         // Assign the values to $wallet and $winning_wallet
+//         $wallet = $data[0]->njl_money;
+//         $winning_wallet_value = $data[0]->njl_winning;
+
+//         // Combine them into an array
+//         $combined = [
+//             'wallet' => $wallet,
+//             'winning_wallet' => $winning_wallet_value,
+//         ];
+        
+
+//         DB::table('users')
+//             ->where('id', $user_id) // Find the user by ID
+//             ->update(['wallet' => $winning_wallet_value]); // Update the wallet field
+            
+//             DB::select("UPDATE `users` SET `recharge`='0' WHERE `id`=$user_id");
+
+//         // Check if API call was successful
+//         if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+//             return response()->json(['status' => 200, 'message' => $apiResponse->msg, 'data' => $combined]);
+//         }
+//         // Handle API errors
+//         return response()->json(['status' => 400, 'message' => $apiResponse->msg]);
+//     } catch (\Exception $e) {
+//         // Log exception
+//         Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+//         // Return server error response
+//         return response()->json(['status' => 400, 'message' => $e->getMessage()]);
+//     }
+// }
+
+
+
+
+///akhilesh
+// public function update_jilli_to_user_wallet(Request $request) {
+//     $validator = Validator::make($request->all(), [
+//         'user_id' => 'required|exists:users,id'
+//     ]);
+//     $validator->stopOnFirstFailure();
+//     if ($validator->fails()) {
+//         return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+//     }
+
+//     $user_id = $request->user_id;
+//     $amount = $request->amount;
+//     $account_token = DB::table('users')->where('id', $user_id)->value('accountNo');
+
+//     $apiUrl = 'https://api.gamebridge.co.in/seller/v1/get-newjilliuser-wallet-by-id';
+//     $manager_key = 'FEGISwJ7ihr41';
+//     $authorizationtoken = '17401563258744';
+
+//     $headers = [
+//         'authorization' => 'Bearer ' . $manager_key,
+//         'validateuser' => 'Bearer ' . $account_token,
+//         'authorizationtoken' => 'Bearer ' . $authorizationtoken
+//     ];
+
+//     $pay_load = ['mobile' => $account_token];
+//     $pay_load = json_encode($pay_load);
+//     $pay_load = base64_encode($pay_load);
+//     $payloadpar = ['payload' => $pay_load];
+
+//     try {
+//         $response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+//         $apiResponse = json_decode($response->body());
+
+//         if (!isset($apiResponse->data) || empty($apiResponse->data)) {
+//             return response()->json(['status' => 400, 'message' => 'Invalid API Response']);
+//         }
+
+//         $data = $apiResponse->data;
+//         if (!is_array($data) || count($data) == 0) {
+//             return response()->json(['status' => 400, 'message' => 'Invalid wallet data']);
+//         }
+
+//         $wallet = $data[0]->njl_money ?? 0;
+//         $winning_wallet_value = $data[0]->njl_winning ?? 0;
+
+//         // Update wallet amount correctly
+//         $user_wallet = DB::table('users')->where('id', $user_id)->value('wallet');
+//         $updated_wallet = $user_wallet + $amount;
+
+//         DB::table('users')
+//             ->where('id', $user_id)
+//             ->update([
+//                 'wallet' => $updated_wallet,
+//                 'recharge' => $amount
+//             ]);
+
+//         $combined = [
+//             'wallet' => $wallet,
+//             'winning_wallet' => $winning_wallet_value,
+//         ];
+
+//         if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+//             return response()->json(['status' => 200, 'message' => $apiResponse->msg, 'data' => $combined]);
+//         }
+
+//         return response()->json(['status' => 400, 'message' => $apiResponse->msg]);
+//     } catch (\Exception $e) {
+//         Log::error('PayIn API Error:', ['error' => $e->getMessage()]);
+//         return response()->json(['status' => 400, 'message' => $e->getMessage()]);
+//     }
+// }
+
+
+public function deduct_bet_amount(Request $request) {
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required|exists:users,id',
+        'bet_amount' => 'required|numeric|min:0'
+    ]);
+    if ($validator->fails()) {
+        return response()->json(['status' => 400, 'message' => $validator->errors()->first()], 200);
+    } 
+
+    $user_id = $request->user_id;
+    $bet_amount = $request->bet_amount;
+
+    $user = DB::table('users')->where('id', $user_id)->first();
+    if (!$user) {
+        return response()->json(['status' => 400, 'message' => 'User not found']);
+    }
+
+    if ($user->recharge < $bet_amount) {
+        return response()->json(['status' => 400, 'message' => 'Insufficient balance']);
+    }
+
+    // 🔹 API Credentials
+    $apiUrl = 'https://api.gamebridge.co.in/seller/v1/deduct-bet-amount';
+    $manager_key = 'FEGISwJ7ihr41';
+    $authorizationtoken = '17401563258744';
+    $account_token = $user->accountNo;
+
+    $headers = [
+        'authorization' => 'Bearer ' . $manager_key,
+        'validateuser' => 'Bearer ' . $account_token,
+        'authorizationtoken' => 'Bearer ' . $authorizationtoken
+    ];
+
+    $pay_load = json_encode([
+        'mobile' => $account_token,
+        'bet_amount' => $bet_amount
+    ]);
+    $pay_load = base64_encode($pay_load);
+    $payloadpar = ['payload' => $pay_load];
+
+    try {
+        $response = Http::withHeaders($headers)->post($apiUrl, $payloadpar);
+        $apiResponse = json_decode($response->body());
+
+        if ($response->successful() && isset($apiResponse->error) && $apiResponse->error == false) {
+            // 🚀 API success hone par local database update karein
+            DB::table('users')
+                ->where('id', $user_id)
+                ->decrement('recharge', $bet_amount);
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Bet amount deducted successfully',
+                'api_message' => $apiResponse->msg
+            ]);
+        }
+
+        return response()->json(['status' => 400, 'message' => $apiResponse->msg]);
+
+    } catch (\Exception $e) {
+        Log::error('Bet Deduction API Error:', ['error' => $e->getMessage()]);
+        return response()->json(['status' => 400, 'message' => $e->getMessage()]);
+    }
+}
+
 	
 	
 	

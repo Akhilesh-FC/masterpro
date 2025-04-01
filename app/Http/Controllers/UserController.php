@@ -307,36 +307,90 @@ public function password_update(Request $request, $id)
 }
 
 
+// public function wallet_store(Request $request, $id)
+// {
+//     if ($request->session()->has('id')) {
+//         $wallet = $request->input('wallet');
+
+//         $request->validate([
+//             'wallet' => 'required|numeric|min:1',  // Ensure wallet has a valid number greater than 0
+//         ]);
+
+//         $user = User::find($id);
+
+//         if ($user) {
+//             $user->increment('wallet', $wallet);
+//             $user->increment('deposit_amount', $wallet);
+//             $user->increment('total_payin', $wallet);
+//             $user->increment('recharge', $wallet);
+
+//             Payin::create([
+//                 'user_id' => $user->id,
+//                 'cash' => $wallet,
+//                 'order_id' => 'via Admin',  // Assuming fixed order_id for admin
+//                 'type' => 0,  // Assuming '2' is the type you need
+//                 'status' => 2,  // Assuming '2' represents success status
+//             ]);
+
+//             return redirect()->route('users')->with('success', 'Wallet updated successfully.');
+//         } else {
+//             return redirect()->route('users')->with('error', 'User not found.');
+//         }
+//     } else {
+//         return redirect()->route('login');
+//     }
+// }
 public function wallet_store(Request $request, $id)
 {
+    // Check if session contains 'id' to verify if the user is logged in
     if ($request->session()->has('id')) {
+        
+        // Retrieve the wallet input
         $wallet = $request->input('wallet');
 
+        // Validate the wallet input
         $request->validate([
             'wallet' => 'required|numeric|min:1',  // Ensure wallet has a valid number greater than 0
         ]);
 
+        // Find the user by ID
         $user = User::find($id);
 
+        // Check if the user exists
         if ($user) {
+            $first_recharge = $user->first_recharge;
+            //dd($first_recharge);
+            // Check if it's the user's first recharge
+            if ($first_recharge == 0) {
+                // Set first_recharge to 0 and save
+                $user->first_recharge =1;
+                $user->save();
+            }
+
+            // Increment the wallet and other fields
             $user->increment('wallet', $wallet);
             $user->increment('deposit_amount', $wallet);
             $user->increment('total_payin', $wallet);
             $user->increment('recharge', $wallet);
 
+            // Create a new Payin record
             Payin::create([
                 'user_id' => $user->id,
                 'cash' => $wallet,
                 'order_id' => 'via Admin',  // Assuming fixed order_id for admin
-                'type' => 0,  // Assuming '2' is the type you need
-                'status' => 2,  // Assuming '2' represents success status
+                'type' => 0,  // Assuming '0' is the type for the admin transaction
+                'status' => 2,  // Assuming '2' represents a success status
             ]);
 
+            // Redirect with success message
             return redirect()->route('users')->with('success', 'Wallet updated successfully.');
         } else {
+            // If user is not found, redirect with error message
             return redirect()->route('users')->with('error', 'User not found.');
         }
+
     } else {
+        // Redirect to login page if session id is not set
         return redirect()->route('login');
     }
 }
@@ -572,107 +626,22 @@ $data= json_decode($response);
 // }
 // }
 
-public function register_store_old(Request $request, $referral_code)
-{
-    $validatedData = $request->validate([
-        'mobile' => 'required',
-        'password' => 'required|string|min:6|confirmed', 
-        'password_confirmation' => 'required|string|min:6', 
-        'email' => 'required|unique:users,email',
-        'otp' => 'required',
-    ]);
 
-    // Retrieve referrer information
-    $referrer = User::where('referral_code', $referral_code)->first();
-
-    if ($referrer) {
-        $referrer_id = $referrer->id;
-
-        // Attempt to find and update the user
-        $user = User::where('mobile', $request->mobile)
-            ->where('otp', $request->otp)
-            ->first();
-
-        if ($user) {
-            $user->update([
-                'email' => $request->email,
-                'wallet' => 20,
-                'password' => $request->password, // Hashing the password
-                'referrer_id' => $referrer_id,
-                'status' => 1,
-            ]);
-
-            // Update referrer's registration count
-            $referrer->increment('yesterday_register');
-
-            return redirect(str_replace('https://admin.', 'http://', "https://jupitergames.app/"));
-        } else {
-            return redirect()->back()->with('error', 'Mobile or OTP not match, Contact to admin..!');
-        }
-    }
-
-    return redirect()->back()->with('error', 'Invalid referral code.');
-}
-
-	
-	public function register_store111(Request $request, $referral_code)
-{
-    $validatedData = $request->validate([
-        'mobile' => 'required',
-        'password' => 'required|string|min:6|confirmed', 
-        'password_confirmation' => 'required|string|min:6', 
-        'email' => 'required|unique:users,email',
-        'otp' => 'required',
-    ]);
-
-    // Retrieve referrer information
-    $referrer = User::where('referral_code', $referral_code)->first();
-    $randomName = 'User_' . strtoupper(Str::random(5));
-		 $randomReferralCode = 'ZUP' . strtoupper(Str::random(4));
-
-    if ($referrer) {
-        $referrer_id = $referrer->id;
-
-        // Attempt to find and update the user
-       
-           DB::table('users')->insert([
-    'email' => $request->email,
-	'name'=>$randomName,
-	'u_id' => $this->generateSecureRandomString(8),
-    'mobile' => $request->mobile,
-    'wallet' => 28,
-	'referral_code' => $randomReferralCode,
-    'password' => $request->password,  // Hash the password
-    'referrer_id' => $referrer_id,
-    'status' => 1,
-]);
-        
-            
-            // Update referrer's registration count
-            $referrer->increment('yesterday_register');
-
-            return redirect(str_replace('https://admin.', 'http://', "https://jupitergames.app/"));
-       
-    }
-
-    return redirect()->back()->with('error', 'Invalid referral code.');
-}
-	
 	public function register_store(Request $request, $referral_code)
 {
     $validatedData = $request->validate([
         'mobile' => 'required',
-        'password' => 'required|string|min:6|confirmed', 
-        'password_confirmation' => 'required|string|min:6', 
-        'email' => 'required|unique:users,email',
-        'otp' => 'required',
+        'password' => 'required|string|min:8|confirmed', 
+        'password_confirmation' => 'required|string|min:8', 
+       // 'email' => 'required|unique:users,email',
+        //'otp' => 'required',
     ]);
 
     // Retrieve referrer information
     $referrer = User::where('referral_code', $referral_code)->first();
     $randomName = 'User_' . strtoupper(Str::random(5));
 		 $randomReferralCode = 'ZUP' . strtoupper(Str::random(4));
-		 $email = $request->email;
+		// $email = $request->email;
 		  $mobile = $request->mobile;
 // Get base URL
     $baseUrl = URL::to('/');
@@ -691,13 +660,13 @@ public function register_store_old(Request $request, $referral_code)
         'referral_code' => $uid,
 		'referrer_id'=>$referrer_id,
         'wallet' => 28,
-		'email'=>$email
+	//	'email'=>$email
     ];
             
             // Update referrer's registration count
             $referrer->increment('yesterday_register');
 		
-		$manager_key = 'FEGISo8cR74cf';
+		$manager_key = 'FEGISwJ7ihr41';
 $apiUrl = 'https://api.gamebridge.co.in/seller/v1/end-user-registration';
 $headers = ['authorization' => 'Bearer ' . $manager_key];  
 $requestData  = ['email' => $email, 'mobile' => $mobile];
@@ -718,7 +687,7 @@ try {
         
         // Redirect to login page with success message
        
-		 return redirect(str_replace('https://admin.', 'http://', "https://jupitergames.app/"))->with('message', 'Registration successful. Please log in.');
+		 return redirect(str_replace('https://admin.', 'http://', "https://masterpro.vip/"))->with('message', 'Registration successful. Please log in.');
     }
 
     // Handle API errors, and redirect back with failure message

@@ -40,7 +40,7 @@
     					<select  class="form-control" name="salary_type" required>
 							
 							<option value="1"> Daily Salary </option>
-							<option value="2"> Weekly Salary </option>
+							<!--<option value="2"> Weekly Salary </option>-->
 							<option value="3"> Monthly Salary </option>
 							
 						</select>

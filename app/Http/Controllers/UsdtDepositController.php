@@ -44,10 +44,10 @@ public function usdt_success(string $id) {
     if(!$users){
         return redirect()->back()->with('error', 'user not found.');
     }
-		  $referral_user = DB::table('users')->where('id', $userid)->value('referral_user_id');
+		  $referral_user = DB::table('users')->where('id', $userid)->value('referrer_id');
 			  
 		  
-			 if($first_recharge == '1'){
+			 if($first_recharge == '0'){
 					 
 				 $first_deposit_bonus = DB::table('first_deposit_bonus')
     					->where('recharge_min', '<=', $amount)
@@ -57,7 +57,7 @@ public function usdt_success(string $id) {
 				 $first_deposit_bonus->member;
 				 $first_deposit_bonus->agent;
 				
-			 	 if($amount >= 200){ $first_recharge_status = 0; } else { $first_recharge_status = 1;}
+			 	 if($amount >= 200){ $first_recharge_status = 1; } else { $first_recharge_status = 0;}
 				
 				 $data2 = DB::table('users')
     				->where('id', $userid)
@@ -76,19 +76,19 @@ public function usdt_success(string $id) {
     					]);
 
 					 
-	  $insert= DB::table('wallet_history')->insert([
-        'userid' => $userid,
+	  $insert= DB::table('wallet_histories')->insert([
+        'user_id' => $userid,
         'amount' => $first_deposit_bonus->member,
-        'subtypeid' => 10,
+        'type_id' => 10,
 		'created_at'=> now(),
         'updated_at' => now()
 		
     ]);
 				 
-	$insert= DB::table('wallet_history')->insert([
-        'userid' => $referral_user,
+	$insert= DB::table('wallet_histories')->insert([
+        'user_id' => $referral_user,
         'amount' => $first_deposit_bonus->agent,
-        'subtypeid' => 10,
+        'type_id' => 10,
 		'created_at'=> now(),
         'updated_at' => now()
 		
@@ -101,15 +101,15 @@ public function usdt_success(string $id) {
     ]);
 
     // Insert into wallet history
-    DB::table('wallet_history')->insert([
-        'userid' => $userid,
+    DB::table('wallet_histories')->insert([
+        'user_id' => $userid,
         'amount' => $amount,
-        'subtypeid' => 26
+        'type_id' => 26
     ]);
 
 
     return redirect()->back()->with('success', 'Successfully Updated.');
-}elseif($first_recharge == '0'){
+}elseif($first_recharge == '1'){
 				 
 				 
 				 

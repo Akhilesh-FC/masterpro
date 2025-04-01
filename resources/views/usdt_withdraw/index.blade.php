@@ -80,7 +80,7 @@ integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9If
     <div class="white_shd full margin_bottom_30">
        <div class="full graph_head">
           <div class="heading1 margin_0 d-flex">
-             <h2>Withdrawl List</h2>
+             <h2>USDT Withdrawl List</h2>
             <!-- <form action="{{route('widthdrawl.all_success')}}" method="post">-->
             <!--     @csrf-->
             <!--<button type="submit" class="btn btn-primary"  style="margin-left:550px;">All Approve</button> -->
@@ -93,13 +93,15 @@ integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9If
                 <thead class="thead-dark">
                    <tr>
                       <th>Id</th>
-                      <th>UserId</th>
+                     <th>User ID</th>
                       <th>Beneficiary Name</th>
-                      <th>INR Amount</th>
+                      <th>USDT Amount</th>
                       <th>Mobile</th>
+					   <th>Illegal Count</th>
                       <th>Usdt Wallet Address</th>
                       <th>Order Id</th>
                       <th>Status</th>
+					   <th>Msg</th>
                       <th>Date</th>
  </tr>
                 </thead>
@@ -109,27 +111,67 @@ integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9If
                       <td>{{$item->id}}</td>
                       <td>{{$item->user_id}}</td>
                       <td>{{$item->beneficiary_name}}</td>
-                       <td>{{$item->amount}}</td>
-                         <td>{{$item->mobile}}</td>   
+                       <td>{{$item->actual_amount}}</td>
+                         <td>{{$item->mobile}}</td>
+					   <td>{{$item->illegal_count}}</td>
                       <td>{{$item->usdt_wallet_address}}</td>
                       <td>{{$item->order_id}}</td>
                       @if($item->status==1)  
-                      <td>
-
-                         <div class="dropdown">
-                          <button class="dropbtn">Pending</button>
-                          <div class="dropdown-content">
-                            <a href="{{route('usdt_widthdrawl.success',$item->id)}}">Success</a>
-                            <a href="{{route('widthdrawl.reject',$item->id)}}">Reject</a>
-
-                          </div>
+                       <td>
+                          
+                            <div class="dropdown">
+                                <button class="btn btn-warning dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                Pending
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <a class="dropdown-item" href="{{ route('usdt_widthdrawl.success', $item->id) }}">Approved</a>
+                                    <a class="dropdown-item" data-toggle="modal" data-target="#exampleModalCenter{{$item->id}}">Reject</a>
+                                </div>
+                            </div>
+                          
+                          
+                    
+						  
+						  <div class="modal fade" id="exampleModalCenter{{$item->id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Reject Withdrawal</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('usdt_widthdrawl.reject', ['id' => $item->id]) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="form-group col-md-12">
+                                <label for="msg">Reason for rejection</label>
+                                <textarea class="form-control" id="msg" name="msg" rows="3" placeholder="Enter reason for rejection" required></textarea>
+                                @error('msg')
+                                <div class="alert alert-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+						  
                       </td>
                      @elseif($item->status==2)
-                     <td><button class="btn btn-success">Success</button></td>
+                     <td><button class="btn btn-success">Approved</button></td>
                       @elseif($item->status==3)
                      <td><button class="btn btn-danger">Reject</button></td>
- @else
+                      @else
                       <td>
                         <!--<select class="form-control">-->
                         <!--  <option>Pending</option>-->
@@ -138,8 +180,8 @@ integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9If
                         <!--</select>-->
                       </td> 
                       @endif
-
-
+                       
+                   <td><?php if($item->status==3){echo $item->rejectmsg;}elseif($item->status==1){echo "Pending";}elseif($item->status==2){echo "Success";}; ?></td>
                       <td>{{$item->created_at}}</td>
                    </tr>
                   @endforeach
@@ -151,11 +193,16 @@ integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9If
  </div>
 </div>
 </div> 
-<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" 
-integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" 
-integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" 
-integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
- @endsection
 
+
+  
+
+<script>
+    $('#myModal').on('shown.bs.modal', function () {
+  $('#myInputs').trigger('focus')
+})
+</script> 
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+ @endsection

@@ -1,13 +1,13 @@
 <?php
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\{PublicApiController,GameApiController,AviatorApiController,AgencyPromotionController,SalaryApiController,VipController,ZiliApiController,TestJilliController,SpribeApiController};
+use App\Http\Controllers\Api\{PublicApiController,GameApiController,AviatorApiController,AgencyPromotionController,SalaryApiController,VipController,ZiliApiController,TestJilliController,SpribeApiController,IfscApiController};
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-
+Route::get('get-ifsc-details', [IfscApiController::class, 'getIfscDetails']);
 
 //// VIP Routes////
 Route::get('/vip_level',[VipController::class,'vip_level']);
@@ -62,7 +62,7 @@ Route::controller(PublicApiController::class)->group(function () {
 	Route::get('/Invitation_records','Invitation_records');
 	Route::post('/invitation_bonus_claim','invitation_bonus_claim');
 	Route::get('/activity_rewards','activity_rewards');
-	Route::Post('/activity_rewards_claim','activity_rewards_claim');
+	Route::Post('/activity_rewards_claimold','activity_rewards_claim');
 
 	Route::get('/activity_rewards_history','activity_rewards_history');
 	Route::get('/attendance_List','attendance_List');
@@ -159,6 +159,15 @@ Route::post('/jilli_deduct_from_wallet',[ZiliApiController::class,'jilli_deduct_
 Route::post('/jilli_get_bet_history',[ZiliApiController::class,'jilli_get_bet_history']);
 Route::post('/add_in_jilli_wallet ',[ZiliApiController::class,'add_in_jilli_wallet']);
 Route::post('/update_main_wallet ',[ZiliApiController::class,'update_main_wallet']);
+Route::post('/update_jilli_to_user_wallet ',[ZiliApiController::class,'update_jilli_to_user_wallet']);
+
+///////akhilesh
+Route::post('/deduct-bet-amount', [ZiliApiController::class, 'deduct_bet_amount']);
+
+//////end akhilesh
+
+Route::post('/get_jilli_wallet ',[ZiliApiController::class,'get_jilli_wallet']);
+Route::post('/update_jilli_wallet ',[ZiliApiController::class,'update_jilli_wallet']);
 
 
 Route::get('/test_get_user_info ',[ZiliApiController::class,'test_get_user_info']);
@@ -177,13 +186,34 @@ Route::get('/get_bet_history',[TestJilliController::class,'get_bet_history']);
 Route::get('/get_reseller_info',[TestJilliController::class,'get_reseller_info']);
 
 
-Route::controller(SpribeApiController::class)->group(function () {
+/* Route::controller(SpribeApiController::class)->group(function () {
     Route::get('/get_reseller_info', 'get_reseller_info');
     Route::post('/get_spribe_game_urls','get_spribe_game_urls');
 	//Route::get('/monthly_bonus','monthlyBonus');
+}); */
+
+
+//// Zili Api ///
+    Route::post('/all_game_list',[ZiliApiController::class,'all_game_list']);
+
+
+Route::controller(SpribeApiController::class)->group(function () {
+    Route::get('/get_reseller_info', 'get_reseller_info');
+    Route::post('/get_spribe_game_urls','get_spribe_game_urls');
+	Route::post('/spribe_betting_history','spribe_betting_history');
+	Route::post('/spribe_all_betting_history','spribe_all_betting_history');
+	Route::post('/sprb/spribe/callback','handleCallback');
+	Route::post('/spribe_user_register','spribe_user_register'); 
+	Route::post('/spribe_transactons_details','spribe_transactons_details'); 
+	Route::post('/scribe_deduct_from_wallet','scribe_deduct_from_wallet');
+	Route::post('/get_spribe_wallet ','get_spribe_wallet');
+	Route::post('/add_in_spribe_wallet ','add_in_spribe_wallet');
+	Route::post('/update_spribe_wallet ','update_spribe_wallet');
+	Route::post('/update_spribe_to_user_wallet ','update_spribe_to_user_wallet');
+
+	
+	//Route::get('/monthly_bonus','monthlyBonus');
 });
-
-
 
 
 

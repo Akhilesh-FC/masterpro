@@ -92,6 +92,8 @@ public function getAllSubordinatesCount()
         'password',
 		  'country_code',
 		  'account_token',
+		  'accountNo',
+		  'spribe_id',
         'image',
         'referral_code',
         'referrer_id',

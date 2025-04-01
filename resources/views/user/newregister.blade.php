@@ -257,7 +257,7 @@
                
                					// Step 3: Register mobile and OTP
                					var xhrRegister = new XMLHttpRequest();
-               					var registerUrl = 'https://root.jupitergames.app/api/otp-register';
+               					var registerUrl = 'https://root.masterpro.vip/api/otp-register';
                					var params = JSON.stringify({
                						mobile: mobileNumber,
                						otp: otp
@@ -336,7 +336,7 @@
             <div data-v-327ab6b4="" class="register__container-button">
             <button data-v-327ab6b4="" type="submit">Register</button><br>
             <!--<a href="http://nandigame.live/" data-v-327ab6b4="" type="">login</a>-->
-            <a href="https://jupitergames.app/" style="
+            <a href="https://root.masterpro.vip/" style="
                width: 7.73333rem;
                height: 1.06667rem;
                color: #fff;

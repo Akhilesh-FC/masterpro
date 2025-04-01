@@ -23,7 +23,7 @@ class SalaryController extends Controller
             'salary_type' => 'required|string',
             'salary_amount' => 'required|numeric',
         ]);
-
+		//dd($request);
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
@@ -32,22 +32,31 @@ class SalaryController extends Controller
         $userid = $request->userid;
         $salary_type = $request->salary_type;
         $salary_amount = $request->salary_amount;
-
+//dd($userid,$salary_type,$salary_amount);
         // Start transaction
         DB::beginTransaction();
 
         // Update user wallet
         $userdata = DB::table('users')->where('id', $userid)->increment('wallet', $salary_amount);
-
+//dd($userdata);
         if ($userdata) {
             // Insert into wallet history
-            DB::table('wallet_history')->insert([
-                'userid' => $userid,
+            DB::table('wallet_histories')->insert([
+                'user_id' => $userid,
                 'description' => $salary_type,
                 'amount' => $salary_amount,
-                'subtypeid' => 13,
+                'type_id' => 13,
                 'created_at' => now(),
                 'updated_at' => now()
+            ]);
+			
+			// Insert into salaries table
+            DB::table('salary')->insert([
+                'user_id' => $userid,
+                'salary_type' => $salary_type,
+                'salary' => $salary_amount,
+                'status' => 1, // Setting status to 1
+               
             ]);
 
             // Commit transaction
